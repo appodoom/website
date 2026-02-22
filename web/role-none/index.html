@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Access Denied - Derbake Generator</title>
+    <link rel="stylesheet" href="index.css" />
+</head>
+
+<body>
+    <div class="title">Derbake model</div>
+    <div class="user-menu-container">
+        <button class="user-menu-toggle" id="userMenuToggle">
+            <span class="username" id="usernameDisplay">Loading...</span>
+            <span class="dropdown-arrow">▼</span>
+        </button>
+        <div class="user-dropdown" id="userDropdown">
+            <div class="dropdown-content">
+                <!-- Dynamic links will be inserted here -->
+            </div>
+        </div>
+    </div>
+    <div class="permission-container">
+        <div class="permission-icon">⏳</div>
+        <h1 class="permission-title">Access Permission Pending</h1>
+        <p class="permission-message">
+            You currently don't have the permission to access this resource.
+            The admins are currently reviewing your account and assigning you a role.
+            Don't forget to refresh your page regularly.
+        </p>
+        <button class="refresh-button" onclick="window.location.reload()">Refresh Page</button>
+    </div>
+    <script>
+    // Simple Theme Toggle
+    function initTheme() {
+        const themeHTML = `
+                <div class="theme-toggle">
+                    <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle dark mode">
+                        <svg class="theme-icon sun-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                        <svg class="theme-icon moon-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+
+        document.body.insertAdjacentHTML('beforeend', themeHTML);
+
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+
+        document.getElementById('themeToggle').addEventListener('click', function() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    }
+
+    // User menu functionality
+    async function initUserMenu() {
+        try {
+            const response = await fetch('/web/api/me/');
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch user data');
+            }
+
+            const userData = await response.json();
+
+            // Update username display
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            usernameDisplay.textContent = userData.username;
+
+            // Create dropdown links
+            const dropdownContent = document.querySelector('.dropdown-content');
+            dropdownContent.innerHTML = ''; // Clear loading state
+
+            // Create links from the userData object
+            Object.entries(userData).forEach(([key, value]) => {
+                if (key === 'username') return; // Skip username since it's already displayed
+
+                const link = document.createElement('a');
+                link.href = value;
+                link.textContent = key.charAt(0).toUpperCase() + key.slice(1); // Capitalize first letter
+                dropdownContent.appendChild(link);
+            });
+
+            // Add dropdown toggle functionality
+            const userMenuToggle = document.getElementById('userMenuToggle');
+            const userDropdown = document.getElementById('userDropdown');
+
+            userMenuToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                userDropdown.classList.toggle('open');
+                userMenuToggle.classList.toggle('open');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!userMenuToggle.contains(e.target) && !userDropdown.contains(e.target)) {
+                    userDropdown.classList.remove('open');
+                    userMenuToggle.classList.remove('open');
+                }
+            });
+
+        } catch (error) {
+            console.error('Error initializing user menu:', error);
+            document.getElementById('usernameDisplay').textContent = 'Error';
+        }
+    }
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', initUserMenu);
+    document.addEventListener('DOMContentLoaded', initTheme);
+    </script>
+</body>
+
+</html>

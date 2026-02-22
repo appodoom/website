@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Model</title>
+    <link rel="stylesheet" href="index.css" />
+</head>
+
+<body>
+    <div class="title">Derbake model</div>
+    <div class="user-menu-container">
+        <button class="user-menu-toggle" id="userMenuToggle">
+            <span class="username" id="usernameDisplay">Loading...</span>
+            <span class="dropdown-arrow">▼</span>
+        </button>
+        <div class="user-dropdown" id="userDropdown">
+            <div class="dropdown-content">
+                <!-- Dynamic links will be inserted here -->
+            </div>
+        </div>
+    </div>
+    <div class="main_content" id="main_content"></div>
+    <div id="toast-container"></div>
+    <button id="dummy" style="display: none"></button>
+    <template id="page-0">
+        <span class="main_content_title">Input settings</span>
+        <div class="main_content_inputs">
+            <div class="inputs_container">
+                <div class="input">
+                    <span>Cycle length in beats: </span>
+                    <input type="text" name="modelCycleLength" />
+                </div>
+                <div class="input">
+                    <span>Tempo: </span>
+                    <input type="text" name="modelTempo" />
+                </div>
+            </div>
+        </div>
+        <button class="main_content_submit" id="submit">Create input</button>
+        </span>
+    </template>
+    <template id="page-1">
+        <div class="composition-container">
+            <!-- LEFT PANEL: Rhythm Editor -->
+            <div class="editor-panel">
+                <div class="container" data-nb="{{number_of_beats}}">
+                    <div class="editor-container">
+                        <div class="main">
+                            <div id="controls">
+                                <label for="snapSelect">Snap to:</label>
+                                <select id="snapSelect">
+                                    <option value="1">1/1 (whole beat)</option>
+                                    <option value="0.5">1/2 (half beat)</option>
+                                    <option value="0.3333333333">1/3 (third beat)</option>
+                                    <option value="0.25" selected>1/4 (quarter beat)</option>
+                                    <option value="0.2">1/5 (fifth beat)</option>
+                                    <option value="0.1666666667">1/6 (sixth beat)</option>
+                                    <option value="0.1428571429">1/7 (seventh beat)</option>
+                                    <option value="0.125">1/8 (eighth beat)</option>
+                                    <option value="0.1111111111">1/9 (ninth beat)</option>
+                                    <option value="0.1">1/10 (tenth beat)</option>
+                                    <option value="0.0909090909">1/11 (eleventh beat)</option>
+                                    <option value="0.0833333333">1/12 (twelfth beat)</option>
+                                    <option value="0.0769230769">1/13 (thirteenth beat)</option>
+                                    <option value="0.0714285714">1/14 (fourteenth beat)</option>
+                                    <option value="0.0666666667">1/15 (fifteenth beat)</option>
+                                    <option value="0.0625">1/16 (sixteenth beat)</option>
+                                </select>
+                            </div>
+                            <canvas id="circle" width="200" height="200"></canvas>
+                            <!-- Place this in your page-1 template where the circle canvas is -->
+                            <button class="zoom-btn" id="zoomCanvas" aria-label="Zoom view" title="Open zoom view">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <path d="M16 16l5 5" />
+                                    <path d="M14 11h4M11 14v-4" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="main">
+                            <div class="sounds-panel">
+                                <div id="sound-buttons">
+                                    <!-- Sound buttons will be generated here -->
+                                </div>
+                            </div>
+                            <div class="current-selection">
+                                Selected: <span id="currentSound">Doom</span>
+                            </div>
+                        </div>
+                        <div class="button-group">
+                            <div class="action-buttons">
+                                <button id="playSkeleton" class="btn primary-btn">Play Cycle</button>
+                                <button id="appendCycle" class="btn primary-btn">Add to input</button>
+                            </div>
+                            <div class="control-buttons">
+                                <button id="clearMarkers" class="btn secondary-btn">Clear Markers</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- RIGHT PANEL: Music Sheet -->
+            <div class="sheet-panel">
+                <div class="tab-header">
+                    <button class="tab-btn active" data-tab="composition" id="composition-tab-btn">Composition</button>
+                    <button class="tab-btn" data-tab="chat" id="chat-tab-btn">Chat</button>
+                </div>
+                <!-- Tab contents -->
+                <div class="tab-content" id="composition-tab">
+                    <div class="music-sheet" id="musicSheet">
+                        <!-- Music sheet will be rendered here -->
+                        <div class="empty-sheet">
+                            <div class="empty-message">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+                                </svg>
+                                <p>No cycles added yet</p>
+                                <small>Click "Add to input" to add your first cycle</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <div class="action-buttons">
+                            <button id="playComposition" class="primary-btn">Play All</button>
+                            <button id="sendInput" class="primary-btn">Send to model</button>
+                        </div>
+                        <div class="control-buttons">
+                            <button id="clearComposition" class="secondary-btn">Clear Sheet</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- <div class="tab-content" id="chat-tab" style="display: none;">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="empty-sheet">
+                            <div class="empty-message">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+                                </svg>
+                                <p>Chat is empty</p>
+                                <small>Start the conversation by sending a composition</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <div class="action-buttons">
+                            <button id="composeNewInputButton" class="primary-btn">Compose new input</button>
+                            <button class="primary-btn">Export chat</button>
+                        </div>
+                        <div class="control-buttons">
+                            <button class="secondary-btn">Delete chat</button>
+                        </div>
+                    </div>
+                </div> -->
+                <div class="tab-content" id="chat-tab" style="display: none;">
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Simple Audio Conversation -->
+                        <div class="conversation-container">
+                            <!-- User Message -->
+                            <div class="message-wrapper user-message">
+                                <div class="message-avatar">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                        <circle cx="12" cy="7" r="4" />
+                                    </svg>
+                                </div>
+                                <div class="message-content">
+                                    <div class="audio-message">
+                                        <audio controls>
+                                            <source src="test.mp3" type="audio/wav">
+                                            Your browser does not support the audio element.
+                                        </audio>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- AI Reply -->
+                            <div class="message-wrapper ai-message">
+                                <!-- AI Avatar with robot icon -->
+                                <div class="message-avatar ai-avatar">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="4" y="8" width="16" height="12" rx="2" />
+                                        <circle cx="9" cy="13" r="1.5" fill="currentColor" />
+                                        <circle cx="15" cy="13" r="1.5" fill="currentColor" />
+                                        <path d="M9 5v3" />
+                                        <path d="M15 5v3" />
+                                        <path d="M9 19v2" />
+                                        <path d="M15 19v2" />
+                                    </svg>
+                                </div>
+                                <div class="message-content">
+                                    <div class="audio-message">
+                                        <audio controls>
+                                            <source src="test.mp3" type="audio/wav">
+                                            Your browser does not support the audio element.
+                                        </audio>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <div class="action-buttons">
+                            <button id="composeNewInputButton" class="primary-btn">Compose new input</button>
+                            <button class="primary-btn">Export chat</button>
+                        </div>
+                        <div class="control-buttons">
+                            <button class="secondary-btn">Delete chat</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <div id="tooltip"></div>
+    <!-- Replace the zoom modal HTML with this -->
+    <div class="zoom-modal" id="zoomModal">
+        <div class="zoom-modal-overlay" id="zoomOverlay"></div>
+        <div class="zoom-modal-content">
+            <div class="zoom-modal-header">
+                <h3>Rhythm Editor - Zoom View</h3>
+                <button class="zoom-close-btn" id="closeZoomModal" aria-label="Close zoom view">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="zoom-main-container">
+                <div class="zoom-canvas-section">
+                    <div class="zoom-canvas-container">
+                        <canvas id="zoomCircle" width="600" height="600"></canvas>
+                    </div>
+                </div>
+                <div class="zoom-controls-section">
+                    <div class="zoom-sounds-panel">
+                        <h4>Select Sound</h4>
+                        <div class="zoom-sound-buttons" id="zoomSoundButtons">
+                            <!-- Sound buttons will be generated here -->
+                        </div>
+                        <div class="zoom-current-selection">
+                            Selected: <span id="zoomCurrentSound">Doom</span>
+                        </div>
+                    </div>
+                    <div class="zoom-actions-panel">
+                        <button class="btn primary-btn" id="playZoomSkeleton">Play Cycle</button>
+                        <button class="btn secondary-btn" id="clearZoomMarkers">Clear Markers</button>
+                        <div class="zoom-snap">
+                            <label for="zoomSnapSelect">Snap to:</label>
+                            <select id="zoomSnapSelect">
+                                <option value="1">1/1 (whole beat)</option>
+                                <option value="0.5">1/2 (half beat)</option>
+                                <option value="0.3333333333">1/3 (third beat)</option>
+                                <option value="0.25" selected>1/4 (quarter beat)</option>
+                                <option value="0.2">1/5 (fifth beat)</option>
+                                <option value="0.1666666667">1/6 (sixth beat)</option>
+                                <option value="0.1428571429">1/7 (seventh beat)</option>
+                                <option value="0.125">1/8 (eighth beat)</option>
+                                <option value="0.1111111111">1/9 (ninth beat)</option>
+                                <option value="0.1">1/10 (tenth beat)</option>
+                                <option value="0.0909090909">1/11 (eleventh beat)</option>
+                                <option value="0.0833333333">1/12 (twelfth beat)</option>
+                                <option value="0.0769230769">1/13 (thirteenth beat)</option>
+                                <option value="0.0714285714">1/14 (fourteenth beat)</option>
+                                <option value="0.0666666667">1/15 (fifteenth beat)</option>
+                                <option value="0.0625">1/16 (sixteenth beat)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    <script>
+        // Theme Toggle Functionality - Add this to your existing navigation.js
+function initThemeToggle() {
+    const themeHTML = `
+        <div class="theme-toggle">
+            <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle dark mode">
+                <svg class="theme-icon sun-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <svg class="theme-icon moon-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                </svg>
+            </button>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', themeHTML);
+
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
+
+    document.getElementById('themeToggle').addEventListener('click', function() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+    });
+}
+
+async function initUserMenu() {
+        try {
+            const response = await fetch('/web/api/me/');
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch user data');
+            }
+            const userData = await response.json();
+
+            // Update username display
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            usernameDisplay.textContent = userData.username;
+
+            // Create dropdown links
+            const dropdownContent = document.querySelector('.dropdown-content');
+            dropdownContent.innerHTML = ''; // Clear loading state
+
+            // Create links from the userData object
+            Object.entries(userData).forEach(([key, value]) => {
+                if (key === 'username') return; // Skip username since it's already displayed
+
+                const link = document.createElement('a');
+                link.href = value;
+                link.textContent = key.charAt(0).toUpperCase() + key.slice(1); // Capitalize first letter
+                dropdownContent.appendChild(link);
+            });
+
+            // Add dropdown toggle functionality
+            const userMenuToggle = document.getElementById('userMenuToggle');
+            const userDropdown = document.getElementById('userDropdown');
+
+            userMenuToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                userDropdown.classList.toggle('open');
+                userMenuToggle.classList.toggle('open');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!userMenuToggle.contains(e.target) && !userDropdown.contains(e.target)) {
+                    userDropdown.classList.remove('open');
+                    userMenuToggle.classList.remove('open');
+                }
+            });
+
+        } catch (error) {
+            console.error('Error initializing user menu:', error);
+            document.getElementById('usernameDisplay').textContent = 'Error';
+        }
+    }
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', initUserMenu);
+// Initialize theme when page loads
+
+document.addEventListener('DOMContentLoaded', initThemeToggle);
+</script>
+    <script src="navigation.js" type="module"></script>
+</body>
+
+</html>

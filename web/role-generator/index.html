@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Derbake generator</title>
+    <link rel="stylesheet" href="index.css" />
+</head>
+
+<body>
+    <div class="title">Derbake model</div>
+    <div class="user-menu-container">
+        <button class="user-menu-toggle" id="userMenuToggle">
+            <span class="username" id="usernameDisplay">Loading...</span>
+            <span class="dropdown-arrow">▼</span>
+        </button>
+        <div class="user-dropdown" id="userDropdown">
+            <div class="dropdown-content">
+                <!-- Dynamic links will be inserted here -->
+            </div>
+        </div>
+    </div>
+    <button id="go_back">Go back to the beginning</button>
+    <div class="main_content" id="main_content"></div>
+    <div id="toast-container"></div>
+    <button id="dummy" style="display: none"></button>
+    <!-- Page 0 Template -->
+    <template id="page-0">
+        <span class="main_content_title">General settings</span>
+        <div class="main_content_inputs">
+            <div class="inputs_container">
+                <div class="step_1_input">
+                    <span>How many cycles in the output?</span>
+                    <input type="text" name="numOfCycles" />
+                </div>
+                <div class="step_1_input">
+                    <span>In BPM, what is the tempo of the output?</span>
+                    <input type="text" name="tempo" />
+                </div>
+                <div class="step_1_input">
+                    <span>In beats, what is the cycle length?</span>
+                    <input type="text" name="cycleLength" />
+                </div>
+                <div class="step_1_input">
+                    <span>What is the maximum subdivision of a beat?</span>
+                    <input type="text" name="maxSubd" placeholder="1-16" />
+                </div>
+                <div class="step_1_input">
+                    <span>Quantization: (Default: 100)</span>
+                    <input type="text" name="std" placeholder="0-100" />
+                </div>
+                <div class="step_1_input">
+                    <span>In BPM, what is the allowed tempo change? (Default: 0)</span>
+                    <input type="text" name="tempoVariation" />
+                </div>
+                <div class="step_1_input">
+                    <span>What is the probability for a hit to have medium volume? (Default: 100)</span>
+                    <input type="text" name="amplitudeVariation" placeholder="0-100" />
+                </div>
+            </div>
+        </div>
+        <div class="flex-div">
+            <button class="main_content_submit" id="next-btn1">Go to advanced</button>
+            <button class="main_content_submit" id="next-btn2">Skip advanced</button>
+        </div>
+    </template>
+    <!-- Page 1 Template -->
+    <template id="page-1">
+        <span class="main_content_title">Variation percentages</span>
+        <div class="main_content_inputs">
+            <div class="matrix_container">
+                <div id="matrix"></div>
+            </div>
+        </div>
+        <button class="main_content_submit" id="next-btn">Next</button>
+    </template>
+    <!-- Page 2 template -->
+    <template id="page-2">
+        <span class="main_content_title">Skeleton building</span>
+        <div class="main_content_inputs">
+            <div class="container" data-nb="{{number_of_beats}}">
+                <div class="editor-container">
+                    <div id="controls">
+                        <input type="checkbox" id="snapCheckbox" checked />
+                        Snap to nearest 0.25 beat
+                    </div>
+                    <div class="main">
+                        <canvas id="circle" width="400" height="400"></canvas>
+                        <div class="sounds-panel">
+                            <div id="sound-buttons">
+                                <!-- Sound buttons will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="current-selection">
+                        Current selection: <span id="currentSound">Doom</span>
+                    </div>
+                    <button id="playSkeleton">Play</button>
+                </div>
+            </div>
+        </div>
+        <button class="main_content_submit" id="next-btn">Generate</button>
+    </template>
+    <!-- Page 3 template -->
+    <template id="page-3">
+        <span class="main_content_title">Result</span>
+        <div id="audio-container"></div>
+        <button id="publish-btn" class="main_content_submit" style="display:none;">Publish audio</button>
+        <button class="main_content_submit" id="next-btn">Go back</button>
+    </template>
+    <div id="tooltip"></div>
+    <script>
+        // Theme Toggle Functionality for Generator
+function initThemeToggle() {
+    const themeHTML = `
+        <div class="theme-toggle">
+            <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle dark mode">
+                <svg class="theme-icon sun-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <svg class="theme-icon moon-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                </svg>
+            </button>
+        </div>
+    `;
+    
+    // Only add if not already present
+    if (!document.querySelector('.theme-toggle')) {
+        document.body.insertAdjacentHTML('beforeend', themeHTML);
+    }
+
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Set initial theme
+    if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
+
+    // Add click event listener
+    document.getElementById('themeToggle').addEventListener('click', function() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+    });
+}
+// User menu functionality
+async function initUserMenu() {
+    try {
+        const response = await fetch('/web/api/me/');
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch user data');
+        }
+
+        const userData = await response.json();
+        
+        // Update username display
+        const usernameDisplay = document.getElementById('usernameDisplay');
+        usernameDisplay.textContent = userData.username;
+        
+        // Create dropdown links
+        const dropdownContent = document.querySelector('.dropdown-content');
+        dropdownContent.innerHTML = ''; // Clear loading state
+        
+        // Create links from the userData object
+        Object.entries(userData).forEach(([key, value]) => {
+            if (key === 'username') return; // Skip username since it's already displayed
+            
+            const link = document.createElement('a');
+            link.href = value;
+            link.textContent = key.charAt(0).toUpperCase() + key.slice(1); // Capitalize first letter
+            dropdownContent.appendChild(link);
+        });
+
+        // Add dropdown toggle functionality
+        const userMenuToggle = document.getElementById('userMenuToggle');
+        const userDropdown = document.getElementById('userDropdown');
+        
+        userMenuToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            userDropdown.classList.toggle('open');
+            userMenuToggle.classList.toggle('open');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!userMenuToggle.contains(e.target) && !userDropdown.contains(e.target)) {
+                userDropdown.classList.remove('open');
+                userMenuToggle.classList.remove('open');
+            }
+        });
+
+    } catch (error) {
+        console.error('Error initializing user menu:', error);
+        document.getElementById('usernameDisplay').textContent = 'Error';
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', initUserMenu);
+
+// Initialize theme when page loads
+document.addEventListener('DOMContentLoaded', initThemeToggle);
+    </script>
+    <script src="navigation.js" type="module"></script>
+</body>
+
+</html>

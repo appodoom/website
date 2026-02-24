@@ -17,7 +17,7 @@ export async function page3script() {
         audioContainer.innerHTML = `<div class="loading">Loading audio...</div>`;
 
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:3001/api/generate/", {
+        const res = await fetch("/api/generate/", {
             method: "POST",
             body,
             headers: {
@@ -62,7 +62,7 @@ export async function page3script() {
                 btn.innerText = "Publishing...";
                 btn.disabled = true;
 
-                const res = await fetch(`http://localhost:3001/api/generate/publish/?id=${audioId}`, {
+                const res = await fetch(`/api/generate/publish/?id=${audioId}`, {
                     "credentials": "include"
                 });
                 if (!res.ok) {

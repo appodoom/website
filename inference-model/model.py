@@ -265,10 +265,10 @@ def load_model(ckpt_path, device="cpu"):
         number_of_heads=8,
         number_of_embeddings=512,
         mlp_ratio=4,
-        dropout=0.0,
+        dropout=0.1,
         tie_weights=True,
         use_type_embeddings=use_type_embeddings,
-        activation_name="gelu",
+        activation_name="tanh",
     ).to(device)
 
     model.load_state_dict(ckpt["model_state"])
@@ -277,20 +277,27 @@ def load_model(ckpt_path, device="cpu"):
     token_to_id = {t:i for i,t in enumerate(vocab)}
     id_to_token = vocab
 
-    return model, token_to_id, id_to_token
+    return model, token_to_id, id_to_token, context_size
 
 @torch.no_grad()
 def generate(model, token_to_id, id_to_token, prompt, max_new_tokens=200, temperature=1.0, top_k=5):
     device = next(model.parameters()).device
 
-    ids = torch.tensor([token_to_id[t] for t in prompt], dtype=torch.long, device=device)[None, :]
+    # Store the initial length to know where generation starts
+    input_ids = torch.tensor([token_to_id[t] for t in prompt], dtype=torch.long, device=device)[None, :]
+    input_length = input_ids.shape[1]
+    
+    # Start with the input prompt
+    ids = input_ids.clone()
 
-    for _ in range(max_new_tokens):
+    i = 0
+    eoc_id = token_to_id["<EOC>"]
+
+    while i < max_new_tokens or ids[0, -1].item() != eoc_id:
         x = ids[:, -model.context_size:]
         logits = model(x)[:, -1, :] / temperature
 
         if top_k is not None:
-            # Keep only the top_k logits
             topk_vals, topk_indices = torch.topk(logits, top_k, dim=-1)
             probs = torch.zeros_like(logits).scatter_(-1, topk_indices, torch.softmax(topk_vals, dim=-1))
         else:
@@ -298,5 +305,8 @@ def generate(model, token_to_id, id_to_token, prompt, max_new_tokens=200, temper
 
         next_id = torch.multinomial(probs, num_samples=1)
         ids = torch.cat([ids, next_id], dim=1)
+        i += 1
 
-    return [id_to_token[i] for i in ids[0].tolist()]
+    # Return ONLY the newly generated tokens (everything after the input prompt)
+    generated_ids = ids[0, input_length:].tolist()
+    return [id_to_token[i] for i in generated_ids]

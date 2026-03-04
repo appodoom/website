@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import List, Optional, Tuple
+import json
 
 TEMPO = 120.0
 AMP = 1.5
@@ -245,7 +246,7 @@ def build_skeleton_line_silence(
 def tokens_to_derbake(
     tokens: List[str],
     output_path: str,
-    tempo: float = TEMPO,
+    tempo: float,
     amp: float = AMP,
     skeleton_hit: str = SKELETON_HIT,
     skeleton_dev: int = SKELETON_DEV,

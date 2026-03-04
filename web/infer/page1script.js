@@ -30,6 +30,8 @@ export function page1script(p) {
         }
     };
 
+    const MODEL_API_URL = "http://localhost:3002"
+
     // ========== STATE MANAGEMENT ==========
     let markers = [];
     let hoverBeat = null;
@@ -874,6 +876,7 @@ export function page1script(p) {
         animate();
         setupEventListeners();
         loadAllBuffers();
+        localStorage.removeItem("model_session_id");
 
         // Initialize zoom sound buttons
         window.addEventListener('load', () => {
@@ -901,11 +904,107 @@ export function page1script(p) {
         compositionTab.click();
     })
 
+    function createAudioMessageElement(audioSrc, type = "user") {
+        // Create wrapper div
+        const wrapper = document.createElement('div');
+        wrapper.className = `message-wrapper ${type}-message`;
+
+        // Create avatar div
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.innerHTML = type === 'user' ?
+            `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+        </svg>` :
+            `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="4" y="8" width="16" height="12" rx="2" />
+                                        <circle cx="9" cy="13" r="1.5" fill="currentColor" />
+                                        <circle cx="15" cy="13" r="1.5" fill="currentColor" />
+                                        <path d="M9 5v3" />
+                                        <path d="M15 5v3" />
+                                        <path d="M9 19v2" />
+                                        <path d="M15 19v2" />
+                                    </svg>`;
+
+        // Create content div
+        const content = document.createElement('div');
+        content.className = 'message-content';
+
+        // Create audio container
+        const audioContainer = document.createElement('div');
+        audioContainer.className = 'audio-message';
+
+        // Create audio element
+        const audio = document.createElement('audio');
+        audio.controls = true;
+
+        // Handle different audio source types
+        if (typeof audioSrc === 'string') {
+            // If it's a string URL
+            const source = document.createElement('source');
+            source.src = audioSrc;
+            source.type = 'audio/wav';
+            audio.appendChild(source);
+        } else if (audioSrc instanceof Blob) {
+            // If it's a Blob
+            const url = URL.createObjectURL(audioSrc);
+            audio.src = url;
+
+            // Clean up on load and error
+            audio.addEventListener('loadeddata', () => URL.revokeObjectURL(url));
+            audio.addEventListener('error', () => URL.revokeObjectURL(url));
+        } else if (audioSrc instanceof MediaSource) {
+            // If it's a MediaSource
+            audio.src = URL.createObjectURL(audioSrc);
+        }
+
+        // Add fallback text
+        const fallback = document.createTextNode('Your browser does not support the audio element.');
+        audio.appendChild(fallback);
+
+        // Assemble the elements
+        audioContainer.appendChild(audio);
+        content.appendChild(audioContainer);
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(content);
+
+        return wrapper;
+    }
+
+    function createLoadingElement() {
+        const wrapper = document.createElement('div');
+        wrapper.className = `message-wrapper ai-message`;
+
+        // Create avatar div
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="4" y="8" width="16" height="12" rx="2" />
+                                        <circle cx="9" cy="13" r="1.5" fill="currentColor" />
+                                        <circle cx="15" cy="13" r="1.5" fill="currentColor" />
+                                        <path d="M9 5v3" />
+                                        <path d="M15 5v3" />
+                                        <path d="M9 19v2" />
+                                        <path d="M15 19v2" />
+                                    </svg>`;
+
+        // Create content div
+        const content = document.createElement('div');
+        content.className = 'message-content';
+        content.innerText = "...";
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(content);
+
+        return wrapper;
+    }
+
     document.getElementById("sendInput").addEventListener("click", async () => {
         if (composition.length === 0) {
             showToast("Input is empty", 2000);
             return;
         }
+        const bpm = Number(localStorage.getItem("modelTempo"))
         const comp = composition;
         composition = [];
         currentCycleId = 0;
@@ -914,14 +1013,93 @@ export function page1script(p) {
         document.getElementById("sendInput").textContent = "Loading...";
         document.getElementById("sendInput").disabled = true;
         const tokens = getTokens(comp);
-        const res = await fetch("http://localhost:3002", {
+        const res_user = await fetch(MODEL_API_URL + "/sound", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ tokens })
-        });
+            body: JSON.stringify({ tokens, tempo: bpm })
+        })
+        if (!res_user.ok) {
+            showToast("Something went wrong")
+            return;
+        }
+        const audioBlob = await res_user.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        document.getElementById("conversation-container").appendChild(createAudioMessageElement(audioUrl, "user"));
         chatTab.click();
+        document.getElementById("sendInput").disabled = false;
+        document.getElementById("sendInput").innerText = "Send to model";
+        document.getElementById("empty-sheet").style.display = "none";
+        document.getElementById("conversation-container").style.display = "block";
+        let body = null;
+        if (localStorage.getItem("model_session_id") != null) {
+            body = { tokens, session_id: localStorage.getItem("model_session_id"), tempo: bpm };
+        } else {
+            body = { tokens, tempo: bpm }
+        }
+        const loadingMessage = createLoadingElement();
+        document.getElementById("conversation-container").appendChild(loadingMessage);
+        const res_model = await fetch(MODEL_API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(body)
+        });
+        if (!res_model.ok) {
+            showToast("Something went wrong");
+            return;
+        }
+        const session_id = res_model.headers.get("x-session-id");
+        if (!session_id) {
+            showToast("Something went wrong")
+            return;
+        }
+        document.getElementById("conversation-container").removeChild(loadingMessage);
+        localStorage.setItem("model_session_id", session_id);
+        const modelAudioBlob = await res_model.blob();
+        const modelAudioUrl = URL.createObjectURL(modelAudioBlob);
+        document.getElementById("conversation-container").appendChild(createAudioMessageElement(modelAudioUrl, "ai"));
+    })
+
+    document.getElementById("export-chat").addEventListener("click", async function() {
+        const session_id = localStorage.getItem("model_session_id");
+
+        if (session_id == null) {
+            showToast("No session id");
+            return;
+        }
+
+        const bpm = Number(localStorage.getItem("modelTempo"))
+
+        const res = await fetch(MODEL_API_URL + `/chat?session=${session_id}&tempo=${bpm}`, {
+            method: "GET"
+        })
+
+        if (!res.ok) {
+            showToast("Something went wrong");
+            return;
+        }
+
+        const audioBlob = await res.blob();
+        const audioURL = URL.createObjectURL(audioBlob);
+
+        const a = document.createElement("a");
+        a.href = audioURL;
+
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    })
+
+    document.getElementById("delete-chat").addEventListener("click", function() {
+        localStorage.removeItem("model_session_id");
+
+        document.getElementById("conversation-container").style.display = "none";
+        document.getElementById("conversation-container").innerHTML = "";
+        document.getElementById("empty-sheet").style.display = "flex";
     })
 
     function getTokens(comp) {
@@ -971,7 +1149,7 @@ export function page1script(p) {
                 tokens.push("SUBD_" + subd);
                 for (let l = 0; l < subd; l++) {
                     let found = false;
-                    tokens.push("POS_" + l);
+                    tokens.push("POS_" + l)
                     const current = i + (1 / subd) * l;
                     for (const h of hitsInBeat) {
                         if (h[0] === current) {
@@ -987,6 +1165,5 @@ export function page1script(p) {
         }
         return tokens;
     }
-
     init();
 }

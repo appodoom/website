@@ -7,6 +7,7 @@ paths = {
     "OTA": "./sounds/taks",
     "OTI": "./sounds/tiks",
     "PAA": "./sounds/pa2s",
+    "PA2": "./sounds/pa2s",
     # "RA": "./sounds/ra.wav",
     # "T1": "./sounds/tik1.wav",
     # "T2": "./sounds/tik2.wav",
@@ -31,5 +32,5 @@ def get_audio_data(symbol, sr=None):
     return random.choice(AUDIO_SOUNDS[symbol])
 
 
-for sym in ["D", "OTA", "OTI", "PAA", "S"]:
+for sym in ["D", "OTA", "OTI", "PAA", "PA2", "S"]:
     AUDIO_SOUNDS[sym] = save_audio_data(sym)

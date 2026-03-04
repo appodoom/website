@@ -20,7 +20,7 @@ def apply_cross_fade(hit_audio, fade_samples=500, attack_preserve=0):
     return hit_audio
 
 
-def play_from_dotderbake(file_path):
+def play_from_dotderbake(file_path, uuid):
     with open(file_path, "r") as f:
         data = f.read()
 
@@ -35,7 +35,7 @@ def play_from_dotderbake(file_path):
     skeleton_tokens = lines[2].split(" ")
     var_tokens = lines[3].split(" ")
 
-    regenerate(initial_tempo, tempos, skeleton_tokens, var_tokens)
+    regenerate(uuid, initial_tempo, tempos, skeleton_tokens, var_tokens)
     
     
 def subdivisions_regenerator(
@@ -169,12 +169,10 @@ def skeleton_regenerator(amplitude, tempos, tokens, sr = 48000):
         skeleton_hits_intervals,
     )
 
-def regenerate(initial_tempo, tempos, skeleton_tokens, var_tokens, sr=48000):
+def regenerate(uuid, initial_tempo, tempos, skeleton_tokens, var_tokens, sr=48000):
 
     VOLUME = 3
     
     y_sk, _, skeleton_hits_intervals  = skeleton_regenerator(amplitude=VOLUME, tokens=skeleton_tokens, tempos=tempos)
     y = subdivisions_regenerator(var_tokens, tempos, y_sk, skeleton_hits_intervals)
-    sf.write("regenerated.wav", data=y, samplerate=48000)
-
-play_from_dotderbake("test.derbake")
+    sf.write(f"tmp/{uuid}.wav", data=y, samplerate=48000)

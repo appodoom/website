@@ -131,9 +131,9 @@
                         </div>
                     </div>
                 </div>
-                <!-- <div class="tab-content" id="chat-tab" style="display: none;">
+                <div class="tab-content" id="chat-tab" style="display: none;">
                     <div class="chat-messages" id="chatMessages">
-                        <div class="empty-sheet">
+                        <div class="empty-sheet" id="empty-sheet">
                             <div class="empty-message">
                                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                     <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
@@ -142,73 +142,71 @@
                                 <small>Start the conversation by sending a composition</small>
                             </div>
                         </div>
-                    </div>
-                    <div class="button-group">
-                        <div class="action-buttons">
-                            <button id="composeNewInputButton" class="primary-btn">Compose new input</button>
-                            <button class="primary-btn">Export chat</button>
-                        </div>
-                        <div class="control-buttons">
-                            <button class="secondary-btn">Delete chat</button>
-                        </div>
-                    </div>
-                </div> -->
-                <div class="tab-content" id="chat-tab" style="display: none;">
-                    <div class="chat-messages" id="chatMessages">
-                        <!-- Simple Audio Conversation -->
-                        <div class="conversation-container">
-                            <!-- User Message -->
-                            <div class="message-wrapper user-message">
-                                <div class="message-avatar">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                                        <circle cx="12" cy="7" r="4" />
-                                    </svg>
-                                </div>
-                                <div class="message-content">
-                                    <div class="audio-message">
-                                        <audio controls>
-                                            <source src="test.mp3" type="audio/wav">
-                                            Your browser does not support the audio element.
-                                        </audio>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- AI Reply -->
-                            <div class="message-wrapper ai-message">
-                                <!-- AI Avatar with robot icon -->
-                                <div class="message-avatar ai-avatar">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="4" y="8" width="16" height="12" rx="2" />
-                                        <circle cx="9" cy="13" r="1.5" fill="currentColor" />
-                                        <circle cx="15" cy="13" r="1.5" fill="currentColor" />
-                                        <path d="M9 5v3" />
-                                        <path d="M15 5v3" />
-                                        <path d="M9 19v2" />
-                                        <path d="M15 19v2" />
-                                    </svg>
-                                </div>
-                                <div class="message-content">
-                                    <div class="audio-message">
-                                        <audio controls>
-                                            <source src="test.mp3" type="audio/wav">
-                                            Your browser does not support the audio element.
-                                        </audio>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="conversation-container" id="conversation-container" style="display:none;">
                         </div>
                     </div>
                     <div class="button-group">
                         <div class="action-buttons">
                             <button id="composeNewInputButton" class="primary-btn">Compose new input</button>
-                            <button class="primary-btn">Export chat</button>
+                            <button class="primary-btn" id="export-chat">Export chat</button>
                         </div>
                         <div class="control-buttons">
-                            <button class="secondary-btn">Delete chat</button>
+                            <button class="secondary-btn" id="delete-chat">Delete chat</button>
                         </div>
                     </div>
                 </div>
+                <!-- <div class="tab-content" id="chat-tab" style="display: none;">
+    <div class="chat-messages" id="chatMessages">
+        <div class="conversation-container">
+            <div class="message-wrapper user-message">
+                <div class="message-avatar">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                </div>
+                <div class="message-content">
+                    <div class="audio-message">
+                        <audio controls>
+                            <source src="test.mp3" type="audio/wav">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                </div>
+            </div>
+            <div class="message-wrapper ai-message">
+                <div class="message-avatar ai-avatar">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="4" y="8" width="16" height="12" rx="2" />
+                        <circle cx="9" cy="13" r="1.5" fill="currentColor" />
+                        <circle cx="15" cy="13" r="1.5" fill="currentColor" />
+                        <path d="M9 5v3" />
+                        <path d="M15 5v3" />
+                        <path d="M9 19v2" />
+                        <path d="M15 19v2" />
+                    </svg>
+                </div>
+                <div class="message-content">
+                    <div class="audio-message">
+                        <audio controls>
+                            <source src="test.mp3" type="audio/wav">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="button-group">
+        <div class="action-buttons">
+            <button id="composeNewInputButton" class="primary-btn">Compose new input</button>
+            <button class="primary-btn">Export chat</button>
+        </div>
+        <div class="control-buttons">
+            <button class="secondary-btn">Delete chat</button>
+        </div>
+    </div>
+</div> -->
             </div>
         </div>
     </template>

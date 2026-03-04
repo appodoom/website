@@ -29,7 +29,6 @@ class SampleManager():
                 curr[counter] = (len(y), y)
             self.AUDIO_SOUNDS[note] = curr
 
-        print(self.AUDIO_SOUNDS)
 
     def get_random_sample(self, symbol:str):
         num = random.choice(list(self.AUDIO_SOUNDS[symbol].keys()))

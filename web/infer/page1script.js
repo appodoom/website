@@ -1,6 +1,5 @@
 export function page1script(p) {
     // ========== CONSTANTS AND CONFIGURATION ==========
-    const API_URL = "http://127.0.0.1:5000";
     const nBeats = Number(localStorage.getItem("modelCycleLength"));
     const SOUNDS = {
         Doom: {
@@ -30,7 +29,7 @@ export function page1script(p) {
         }
     };
 
-    const MODEL_API_URL = "http://localhost:3002"
+    const MODEL_API_URL = "http://3.127.36.239:5000"
 
     // ========== STATE MANAGEMENT ==========
     let markers = [];

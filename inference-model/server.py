@@ -13,7 +13,7 @@ CTX_SIZE = 0
 
 app = Flask(__name__)
 # TODO CHANGE ORIGIN FOR PROD
-CORS(app, resources={"*": {"origins": "*"}})
+CORS(app, resources={"*": {"origins": ["*.largepercussionmodel.com", "https://largepercussionmodel.com", "http://localhost:3000"]}})
 
 def cleanup_files(session_id):
     """Delete temporary files for a session"""
@@ -230,5 +230,5 @@ if __name__ == "__main__":
     Path("sessions").mkdir(exist_ok=True)
     Path("tmp").mkdir(exist_ok=True)
     
-    app.run(port=3002)
-    print("[INFER] Server running on port 3002")
+    app.run(port=5000)
+    print("[INFER] Server running on port 5000")

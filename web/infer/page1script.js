@@ -29,7 +29,7 @@ export function page1script(p) {
         }
     };
 
-    const MODEL_API_URL = "http://model.largepercussionmodel.com:5000"
+    const MODEL_API_URL = "https://model.largepercussionmodel.com"
 
     // ========== STATE MANAGEMENT ==========
     let markers = [];

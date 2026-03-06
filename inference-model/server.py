@@ -230,5 +230,5 @@ if __name__ == "__main__":
     Path("sessions").mkdir(exist_ok=True)
     Path("tmp").mkdir(exist_ok=True)
     
-    app.run(port=5000)
+    app.run(host="0.0.0.0",port=5000)
     print("[INFER] Server running on port 5000")

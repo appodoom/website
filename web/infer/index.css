@@ -1765,3 +1765,8 @@ audio::-webkit-media-controls-time-remaining-display {
 [data-theme="dark"] audio::-webkit-media-controls-time-remaining-display {
     color: var(--text-light);
 }
+
+.audio-message audio {
+    width: 300px;
+    height: 50px;
+}

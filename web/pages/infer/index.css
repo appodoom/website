@@ -913,3 +913,7 @@
     height: 300px;
   }
 }
+
+.container {
+  width: 100% !important;
+}

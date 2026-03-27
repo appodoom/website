@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DerboukaGPT – Generator</title>
+    <link rel="stylesheet" href="/web/shared/css/global.css" />
+    <link rel="stylesheet" href="index.css" />
+  </head>
+
+  <body>
+    <header>
+      <div class="navbar">
+        <div class="brand big-logo"></div>
+
+        <div class="generator-navbar-right">
+          <div class="user-menu-container">
+            <button class="user-menu-toggle" id="userMenuToggle" type="button">
+              <span class="username" id="usernameDisplay">Loading...</span>
+              <span class="dropdown-arrow">▼</span>
+            </button>
+
+            <div class="user-dropdown" id="userDropdown">
+              <div class="dropdown-content" id="dropdownContent"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <button id="go_back" class="btn" type="button">Go back to the beginning</button>
+
+    <main class="generator-page">
+      <div class="container generator-shell">
+        <div class="generator-header">
+          <div>
+            <h1 class="generator-title">Generation Workspace</h1>
+            <p class="generator-subtitle">
+              Configure the output, adjust advanced probabilities, build a skeleton,
+              and generate a new percussion sample.
+            </p>
+          </div>
+
+          <div class="generator-steps" id="generatorSteps">
+            <div class="step-pill" data-step="0">1. Settings</div>
+            <div class="step-pill" data-step="1">2. Advanced</div>
+            <div class="step-pill" data-step="2">3. Skeleton</div>
+            <div class="step-pill" data-step="3">4. Result</div>
+          </div>
+        </div>
+
+        <div class="generator-main" id="main_content"></div>
+      </div>
+    </main>
+
+    <div id="toast-container" class="toast-container"></div>
+    <button id="dummy" type="button" hidden></button>
+    <div id="tooltip"></div>
+
+    <!-- PAGE 0 -->
+    <template id="page-0">
+      <section class="generator-view">
+        <div class="view-header">
+          <h2 class="view-title">General Settings</h2>
+          <p class="view-subtitle">
+            These settings define the shape and timing of the generated output.
+          </p>
+        </div>
+
+        <div class="panel settings-panel">
+          <div class="settings-grid">
+            <div class="setting-row">
+              <label for="numOfCyclesInput">How many cycles in the output?</label>
+              <input id="numOfCyclesInput" type="text" name="numOfCycles" />
+            </div>
+
+            <div class="setting-row">
+              <label for="tempoInput">In BPM, what is the tempo of the output?</label>
+              <input id="tempoInput" type="text" name="tempo" />
+            </div>
+
+            <div class="setting-row">
+              <label for="cycleLengthInput">In beats, what is the cycle length?</label>
+              <input id="cycleLengthInput" type="text" name="cycleLength" />
+            </div>
+
+            <div class="setting-row">
+              <label for="maxSubdInput">What is the maximum subdivision of a beat?</label>
+              <input id="maxSubdInput" type="text" name="maxSubd" placeholder="1-16" />
+            </div>
+
+            <div class="setting-row">
+              <label for="stdInput">Quantization (Default: 100)</label>
+              <input id="stdInput" type="text" name="std" placeholder="0-100" />
+            </div>
+
+            <div class="setting-row">
+              <label for="tempoVariationInput">
+                In BPM, what is the allowed tempo change? (Default: 0)
+              </label>
+              <input id="tempoVariationInput" type="text" name="tempoVariation" />
+            </div>
+
+            <div class="setting-row">
+              <label for="amplitudeVariationInput">
+                What is the probability for a hit to have medium volume? (Default: 100)
+              </label>
+              <input
+                id="amplitudeVariationInput"
+                type="text"
+                name="amplitudeVariation"
+                placeholder="0-100"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="view-actions">
+          <button class="btn btn-primary" id="next-btn1" type="button">Go to advanced</button>
+          <button class="btn" id="next-btn2" type="button">Skip advanced</button>
+        </div>
+      </section>
+    </template>
+
+    <!-- PAGE 1 -->
+    <template id="page-1">
+      <section class="generator-view">
+        <div class="view-header">
+          <h2 class="view-title">Variation Percentages</h2>
+          <p class="view-subtitle">
+            Fill any values you want to control. Blank cells will inherit the previous value.
+          </p>
+        </div>
+
+        <div class="panel matrix-panel">
+          <div class="matrix_container">
+            <div id="matrix"></div>
+          </div>
+        </div>
+
+        <div class="view-actions">
+          <button class="btn btn-primary" id="next-btn" type="button">Next</button>
+        </div>
+      </section>
+    </template>
+
+    <!-- PAGE 2 -->
+    <template id="page-2">
+      <section class="generator-view">
+        <div class="view-header">
+          <h2 class="view-title">Skeleton Building</h2>
+          <p class="view-subtitle">
+            Build the rhythmic skeleton that will guide generation.
+          </p>
+        </div>
+
+        <div class="skeleton-layout">
+          <div class="panel skeleton-editor-panel">
+            <div class="panel-section-title">Editor</div>
+
+            <div class="skeleton-toolbar">
+              <label class="checkbox-row" for="snapCheckbox">
+                <input type="checkbox" id="snapCheckbox" checked />
+                Snap to nearest 0.25 beat
+              </label>
+            </div>
+
+            <div class="circle-shell">
+              <canvas id="circle" width="400" height="400"></canvas>
+            </div>
+
+            <div class="current-selection">
+              Current selection: <span id="currentSound">Doom</span>
+            </div>
+
+            <div class="editor-actions">
+              <button class="btn btn-primary" id="playSkeleton" type="button">Play</button>
+              <button class="btn btn-primary" id="next-btn" type="button">Generate</button>
+            </div>
+          </div>
+
+          <div class="panel skeleton-sounds-panel">
+            <div class="panel-section-title">Sounds</div>
+            <div id="sound-buttons"></div>
+          </div>
+        </div>
+      </section>
+    </template>
+
+    <!-- PAGE 3 -->
+    <template id="page-3">
+      <section class="generator-view">
+        <div class="view-header">
+          <h2 class="view-title">Result</h2>
+          <p class="view-subtitle">
+            Listen to the generated output and publish it if you are satisfied.
+          </p>
+        </div>
+
+        <div class="panel result-panel">
+          <div id="audio-container"></div>
+        </div>
+
+        <div class="view-actions">
+          <button id="publish-btn" class="btn btn-primary" type="button" style="display: none;">
+            Publish audio
+          </button>
+          <button class="btn" id="next-btn" type="button">Go back</button>
+        </div>
+      </section>
+    </template>
+
+    <script>
+      async function initUserMenu() {
+        try {
+          const response = await fetch('/web/api/me/');
+
+          if (!response.ok) {
+            throw new Error('Failed to fetch user data');
+          }
+
+          const userData = await response.json();
+
+          const usernameDisplay = document.getElementById('usernameDisplay');
+          const dropdownContent = document.getElementById('dropdownContent');
+          const userMenuToggle = document.getElementById('userMenuToggle');
+          const userDropdown = document.getElementById('userDropdown');
+
+          usernameDisplay.textContent = userData.username || 'Account';
+          dropdownContent.innerHTML = '';
+
+          Object.entries(userData).forEach(([key, value]) => {
+            if (key === 'username') return;
+
+            const link = document.createElement('a');
+            link.href = value;
+            link.textContent = key.charAt(0).toUpperCase() + key.slice(1);
+            dropdownContent.appendChild(link);
+          });
+
+          userMenuToggle.addEventListener('click', (event) => {
+            event.stopPropagation();
+            userDropdown.classList.toggle('open');
+            userMenuToggle.classList.toggle('open');
+          });
+
+          document.addEventListener('click', (event) => {
+            if (!userMenuToggle.contains(event.target) && !userDropdown.contains(event.target)) {
+              userDropdown.classList.remove('open');
+              userMenuToggle.classList.remove('open');
+            }
+          });
+        } catch (error) {
+          console.error('Error initializing user menu:', error);
+          const usernameDisplay = document.getElementById('usernameDisplay');
+          if (usernameDisplay) {
+            usernameDisplay.textContent = 'Account';
+          }
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', initUserMenu);
+    </script>
+
+    <script src="navigation.js" type="module"></script>
+  </body>
+</html>

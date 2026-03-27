@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DerboukaGPT – Inference</title>
+    <link rel="stylesheet" href="/web/shared/css/global.css" />
+    <link rel="stylesheet" href="index.css" />
+  </head>
+
+  <body>
+    <header>
+      <div class="navbar">
+        <div class="brand big-logo"></div>
+
+        <div class="app-navbar-right">
+          <div class="user-menu-container">
+            <button class="user-menu-toggle" id="userMenuToggle" type="button">
+              <span class="username" id="usernameDisplay">Loading...</span>
+              <span class="dropdown-arrow">▼</span>
+            </button>
+
+            <div class="user-dropdown" id="userDropdown">
+              <div class="dropdown-content" id="dropdownContent"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="infer-page">
+      <div id="main_content" class="infer-shell"></div>
+    </main>
+
+    <div id="toast-container" class="toast-container"></div>
+    <button id="dummy" type="button" hidden></button>
+
+    <template id="page-0">
+      <section class="setup-section">
+        <div class="container setup-container">
+          <div class="setup-header">
+            <h1 class="setup-title">Input Settings</h1>
+            <p class="setup-subtitle">
+              Choose the cycle length and tempo before opening the rhythm
+              editor.
+            </p>
+          </div>
+
+          <div class="panel setup-panel">
+            <div class="setup-fields">
+              <div class="form-row">
+                <label for="modelCycleLengthInput">Cycle length in beats</label>
+                <input
+                  id="modelCycleLengthInput"
+                  type="text"
+                  name="modelCycleLength"
+                  inputmode="numeric"
+                />
+              </div>
+
+              <div class="form-row">
+                <label for="modelTempoInput">Tempo</label>
+                <input
+                  id="modelTempoInput"
+                  type="text"
+                  name="modelTempo"
+                  inputmode="numeric"
+                />
+              </div>
+            </div>
+
+            <div class="setup-actions">
+              <button class="btn btn-primary" id="submit" type="button">
+                Open editor
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </template>
+
+    <template id="page-1">
+      <section class="editor-page">
+        <div class="container editor-page-shell">
+          <div class="editor-page-header">
+            <div>
+              <h1 class="editor-page-title">Model Workspace</h1>
+              <p class="editor-page-subtitle">
+                Compose a rhythm, build an input sequence, and send it to the
+                model.
+              </p>
+            </div>
+
+            <div class="editor-page-meta">
+              <span class="meta-pill"
+                >Cycle: <strong id="metaCycleLength"></strong
+              ></span>
+              <span class="meta-pill"
+                >Tempo: <strong id="metaTempo"></strong
+              ></span>
+            </div>
+          </div>
+
+          <div class="composition-container">
+            <aside class="editor-panel panel">
+              <div class="panel-header">
+                <h2>Rhythm Editor</h2>
+              </div>
+
+              <div class="editor-panel-body">
+                <div class="editor-toolbar">
+                  <label for="snapSelect">Snap to:</label>
+                  <select id="snapSelect">
+                    <option value="1">1/1 (whole beat)</option>
+                    <option value="0.5">1/2 (half beat)</option>
+                    <option value="0.3333333333">1/3 (third beat)</option>
+                    <option value="0.25" selected>1/4 (quarter beat)</option>
+                    <option value="0.2">1/5 (fifth beat)</option>
+                    <option value="0.1666666667">1/6 (sixth beat)</option>
+                    <option value="0.1428571429">1/7 (seventh beat)</option>
+                    <option value="0.125">1/8 (eighth beat)</option>
+                    <option value="0.1111111111">1/9 (ninth beat)</option>
+                    <option value="0.1">1/10 (tenth beat)</option>
+                    <option value="0.0909090909">1/11 (eleventh beat)</option>
+                    <option value="0.0833333333">1/12 (twelfth beat)</option>
+                    <option value="0.0769230769">1/13 (thirteenth beat)</option>
+                    <option value="0.0714285714">1/14 (fourteenth beat)</option>
+                    <option value="0.0666666667">1/15 (fifteenth beat)</option>
+                    <option value="0.0625">1/16 (sixteenth beat)</option>
+                  </select>
+                </div>
+
+                <div class="canvas-card">
+                  <div class="canvas-container">
+                    <canvas id="circle" width="220" height="220"></canvas>
+                    <button
+                      class="zoom-btn"
+                      id="zoomCanvas"
+                      type="button"
+                      aria-label="Zoom view"
+                      title="Open zoom view"
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="M16 16l5 5" />
+                        <path d="M14 11h4M11 14v-4" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="sound-selector panel inset-panel">
+                  <div class="mini-title">Sounds</div>
+                  <div id="sound-buttons"></div>
+                  <div class="current-selection">
+                    Selected: <span id="currentSound">Doom</span>
+                  </div>
+                </div>
+
+                <div class="button-group">
+                  <div class="action-buttons">
+                    <button
+                      id="playSkeleton"
+                      class="btn btn-primary"
+                      type="button"
+                    >
+                      Play Cycle
+                    </button>
+                    <button
+                      id="appendCycle"
+                      class="btn btn-primary"
+                      type="button"
+                    >
+                      Add to input
+                    </button>
+                  </div>
+                  <div class="control-buttons">
+                    <button id="clearMarkers" class="btn" type="button">
+                      Clear Markers
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            <section class="sheet-panel panel">
+              <div class="tab-header">
+                <button
+                  class="tab-btn active"
+                  data-tab="composition"
+                  id="composition-tab-btn"
+                  type="button"
+                >
+                  Composition
+                </button>
+                <button
+                  class="tab-btn"
+                  data-tab="chat"
+                  id="chat-tab-btn"
+                  type="button"
+                >
+                  Chat
+                </button>
+              </div>
+
+              <div class="tab-content" id="composition-tab">
+                <div class="workspace-pane">
+                  <div class="music-sheet" id="musicSheet">
+                    <div class="empty-sheet">
+                      <div class="empty-message">
+                        <svg
+                          width="48"
+                          height="48"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                        >
+                          <path
+                            d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+                          />
+                        </svg>
+                        <p>No cycles added yet</p>
+                        <small
+                          >Click “Add to input” to add your first cycle.</small
+                        >
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="button-group workspace-buttons">
+                    <div class="action-buttons">
+                      <button
+                        id="playComposition"
+                        class="btn btn-primary"
+                        type="button"
+                      >
+                        Play All
+                      </button>
+                      <button
+                        id="sendInput"
+                        class="btn btn-primary"
+                        type="button"
+                      >
+                        Send to model
+                      </button>
+                    </div>
+                    <div class="control-buttons">
+                      <button id="clearComposition" class="btn" type="button">
+                        Clear Sheet
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tab-content" id="chat-tab" style="display: none">
+                <div class="workspace-pane">
+                  <div class="chat-messages" id="chatMessages">
+                    <div class="empty-sheet" id="empty-sheet">
+                      <div class="empty-message">
+                        <svg
+                          width="48"
+                          height="48"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                        >
+                          <path
+                            d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+                          />
+                        </svg>
+                        <p>Chat is empty</p>
+                        <small
+                          >Start the conversation by sending a
+                          composition.</small
+                        >
+                      </div>
+                    </div>
+
+                    <div
+                      class="conversation-container"
+                      id="conversation-container"
+                      style="display: none"
+                    ></div>
+                  </div>
+
+                  <div class="button-group workspace-buttons">
+                    <div class="action-buttons">
+                      <button
+                        id="composeNewInputButton"
+                        class="btn btn-primary"
+                        type="button"
+                      >
+                        Compose new input
+                      </button>
+                      <button
+                        class="btn btn-primary"
+                        id="export-chat"
+                        type="button"
+                      >
+                        Export chat
+                      </button>
+                    </div>
+                    <div class="control-buttons">
+                      <button class="btn" id="delete-chat" type="button">
+                        Delete chat
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </template>
+
+    <div id="tooltip"></div>
+
+    <div class="zoom-modal" id="zoomModal">
+      <div class="zoom-modal-overlay" id="zoomOverlay"></div>
+
+      <div class="zoom-modal-content">
+        <div class="zoom-modal-header">
+          <h3>Rhythm Editor – Zoom View</h3>
+          <button
+            class="zoom-close-btn"
+            id="closeZoomModal"
+            type="button"
+            aria-label="Close zoom view"
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="zoom-main-container">
+          <div class="zoom-canvas-section">
+            <div class="zoom-canvas-container">
+              <canvas id="zoomCircle" width="600" height="600"></canvas>
+            </div>
+          </div>
+
+          <div class="zoom-controls-section">
+            <div class="zoom-sounds-panel">
+              <h4>Select Sound</h4>
+              <div class="zoom-sound-buttons" id="zoomSoundButtons"></div>
+              <div class="zoom-current-selection">
+                Selected: <span id="zoomCurrentSound">Doom</span>
+              </div>
+            </div>
+
+            <div class="zoom-actions-panel">
+              <button
+                class="btn btn-primary"
+                id="playZoomSkeleton"
+                type="button"
+              >
+                Play Cycle
+              </button>
+              <button class="btn" id="clearZoomMarkers" type="button">
+                Clear Markers
+              </button>
+
+              <div class="zoom-snap">
+                <label for="zoomSnapSelect">Snap to:</label>
+                <select id="zoomSnapSelect">
+                  <option value="1">1/1 (whole beat)</option>
+                  <option value="0.5">1/2 (half beat)</option>
+                  <option value="0.3333333333">1/3 (third beat)</option>
+                  <option value="0.25" selected>1/4 (quarter beat)</option>
+                  <option value="0.2">1/5 (fifth beat)</option>
+                  <option value="0.1666666667">1/6 (sixth beat)</option>
+                  <option value="0.1428571429">1/7 (seventh beat)</option>
+                  <option value="0.125">1/8 (eighth beat)</option>
+                  <option value="0.1111111111">1/9 (ninth beat)</option>
+                  <option value="0.1">1/10 (tenth beat)</option>
+                  <option value="0.0909090909">1/11 (eleventh beat)</option>
+                  <option value="0.0833333333">1/12 (twelfth beat)</option>
+                  <option value="0.0769230769">1/13 (thirteenth beat)</option>
+                  <option value="0.0714285714">1/14 (fourteenth beat)</option>
+                  <option value="0.0666666667">1/15 (fifteenth beat)</option>
+                  <option value="0.0625">1/16 (sixteenth beat)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="navigation.js" type="module"></script>
+  </body>
+</html>

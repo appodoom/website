@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Access Pending - DerboukaGPT</title>
+    <link rel="stylesheet" href="/web/shared/css/global.css" />
+    <link rel="stylesheet" href="index.css" />
+  </head>
+
+  <body>
+    <header>
+      <div class="navbar">
+        <div class="brand big-logo"></div>
+
+        <div class="page-navbar-right">
+          <div class="user-menu-container">
+            <button class="user-menu-toggle" id="userMenuToggle" type="button">
+              <span class="username" id="usernameDisplay">Loading...</span>
+              <span class="dropdown-arrow">▼</span>
+            </button>
+
+            <div class="user-dropdown" id="userDropdown">
+              <div class="dropdown-content" id="dropdownContent"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="permission-page">
+      <div class="container permission-shell">
+        <section class="permission-panel">
+          <div class="permission-icon">⏳</div>
+
+          <h1 class="permission-title">Access Permission Pending</h1>
+
+          <p class="permission-message">
+            You do not currently have permission to access this resource. The
+            administrators are reviewing your account and assigning the
+            appropriate role. Please refresh this page from time to time.
+          </p>
+
+          <div class="permission-actions">
+            <button
+              class="btn btn-primary"
+              id="refreshPageButton"
+              type="button"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      async function initUserMenu() {
+        try {
+          const response = await fetch("/web/api/me/");
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch user data");
+          }
+
+          const userData = await response.json();
+
+          const usernameDisplay = document.getElementById("usernameDisplay");
+          const dropdownContent = document.getElementById("dropdownContent");
+          const userMenuToggle = document.getElementById("userMenuToggle");
+          const userDropdown = document.getElementById("userDropdown");
+
+          usernameDisplay.textContent = userData.username || "Account";
+          dropdownContent.innerHTML = "";
+
+          Object.entries(userData).forEach(([key, value]) => {
+            if (key === "username") return;
+
+            const link = document.createElement("a");
+            link.href = value;
+            link.textContent = key.charAt(0).toUpperCase() + key.slice(1);
+            dropdownContent.appendChild(link);
+          });
+
+          userMenuToggle.addEventListener("click", (event) => {
+            event.stopPropagation();
+            userDropdown.classList.toggle("open");
+            userMenuToggle.classList.toggle("open");
+          });
+
+          document.addEventListener("click", (event) => {
+            if (
+              !userMenuToggle.contains(event.target) &&
+              !userDropdown.contains(event.target)
+            ) {
+              userDropdown.classList.remove("open");
+              userMenuToggle.classList.remove("open");
+            }
+          });
+        } catch (error) {
+          console.error("Error initializing user menu:", error);
+          const usernameDisplay = document.getElementById("usernameDisplay");
+          if (usernameDisplay) {
+            usernameDisplay.textContent = "Account";
+          }
+        }
+      }
+
+      function initPage() {
+        const refreshButton = document.getElementById("refreshPageButton");
+        refreshButton.addEventListener("click", () => {
+          window.location.reload();
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        initUserMenu();
+        initPage();
+      });
+    </script>
+  </body>
+</html>

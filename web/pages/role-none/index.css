@@ -1,0 +1,149 @@
+/* =========================================
+   ACCESS PENDING PAGE
+   ========================================= */
+
+.permission-page {
+  margin-top: 80px;
+  padding: 40px 20px 60px;
+}
+
+.permission-shell {
+  padding: 0;
+}
+
+.permission-panel {
+  padding: 60px 32px;
+  text-align: center;
+}
+
+.permission-icon {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 18px;
+}
+
+.permission-title {
+  margin: 0 0 14px;
+  font-size: 28px;
+  color: var(--text);
+  text-shadow: 0 1px 0 #fff;
+}
+
+.permission-message {
+  max-width: 620px;
+  margin: 0 auto 22px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.permission-actions {
+  display: flex;
+  justify-content: center;
+}
+
+/* =========================================
+   USER MENU
+   ========================================= */
+
+.page-navbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.user-menu-container {
+  position: relative;
+}
+
+.user-menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(#ffffff, #e6e6e6);
+  box-shadow:
+    var(--shadow-inner-light),
+    0 1px 1px rgba(0, 0, 0, 0.05);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  text-shadow: 0 1px 0 #fff;
+  cursor: pointer;
+}
+
+.user-menu-toggle:hover {
+  background: linear-gradient(#ffffff, #dddddd);
+}
+
+.user-menu-toggle.open {
+  background: linear-gradient(#e6e6e6, #ffffff);
+  box-shadow: var(--shadow-inner-soft);
+}
+
+.username {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-arrow {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  display: none;
+  z-index: 1000;
+}
+
+.user-dropdown.open {
+  display: block;
+}
+
+.dropdown-content {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-outer);
+  padding: 4px 0;
+}
+
+.dropdown-content a {
+  display: block;
+  padding: 7px 14px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.dropdown-content a:hover {
+  background: var(--gray-2);
+  color: var(--text);
+  text-decoration: none;
+}
+
+@media (max-width: 700px) {
+  .permission-page {
+    padding: 24px 12px 40px;
+  }
+
+  .permission-panel {
+    padding: 40px 18px;
+  }
+
+  .permission-title {
+    font-size: 24px;
+  }
+
+  .username {
+    max-width: 110px;
+  }
+}

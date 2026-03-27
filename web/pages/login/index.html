@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DerboukaGPT – Account</title>
+    <link rel="stylesheet" href="/web/shared/css/global.css" />
+    <link rel="stylesheet" href="index.css" />
+  </head>
+
+  <body>
+    <header>
+      <div class="navbar">
+        <div class="brand big-logo"></div>
+
+        <div class="auth-navbar-right">
+          <div class="user-menu-container">
+            <button class="user-menu-toggle" id="userMenuToggle" type="button">
+              <span class="username" id="usernameDisplay">Loading...</span>
+              <span class="dropdown-arrow">▼</span>
+            </button>
+
+            <div class="user-dropdown" id="userDropdown">
+              <div class="dropdown-content" id="dropdownContent"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="auth-page">
+      <div class="container auth-shell">
+        <div class="auth-header">
+          <div class="auth-logo big-logo"></div>
+          <div class="auth-tagline">Account access</div>
+        </div>
+
+        <div class="auth-panel">
+          <div class="auth-panel-header">
+            <button class="auth-tab-btn" id="tab-login" type="button">
+              Login
+            </button>
+            <button class="auth-tab-btn" id="tab-register" type="button">
+              Register
+            </button>
+          </div>
+
+          <div id="main_content"></div>
+        </div>
+      </div>
+    </main>
+
+    <div id="toast-container" class="toast-container"></div>
+    <button id="dummy" type="button" hidden></button>
+
+    <template id="page-0">
+      <section class="auth-view">
+        <h1 class="auth-title">Login to your account</h1>
+        <p class="auth-description">
+          Access your DerboukaGPT account to continue using the demo, generation
+          tools, and evaluation platform.
+        </p>
+
+        <form id="login-form" class="auth-form" novalidate>
+          <div class="form-row">
+            <label for="login-username">Username</label>
+            <input
+              id="login-username"
+              name="username"
+              type="text"
+              autocomplete="username"
+            />
+          </div>
+
+          <div class="form-row">
+            <label for="login-password">Password</label>
+            <input
+              id="login-password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+            />
+          </div>
+
+          <div class="auth-actions">
+            <button class="btn btn-primary" id="login-submit" type="submit">
+              Login
+            </button>
+          </div>
+        </form>
+
+        <p class="auth-switch-text">
+          Don't have an account yet?
+          <button class="auth-switch-btn" id="switch_page" type="button">
+            Register now.
+          </button>
+        </p>
+      </section>
+    </template>
+
+    <template id="page-1">
+      <section class="auth-view">
+        <h1 class="auth-title">Create a new account</h1>
+        <p class="auth-description">
+          Register for a DerboukaGPT account and start exploring Eastern
+          percussion with AI.
+        </p>
+
+        <form id="register-form" class="auth-form" novalidate>
+          <div class="form-row">
+            <label for="register-username">Username</label>
+            <input
+              id="register-username"
+              name="username"
+              type="text"
+              autocomplete="username"
+            />
+          </div>
+
+          <div class="form-row">
+            <label for="register-password">Password</label>
+            <input
+              id="register-password"
+              name="password"
+              type="password"
+              autocomplete="new-password"
+            />
+          </div>
+
+          <div class="auth-actions">
+            <button class="btn btn-primary" id="register-submit" type="submit">
+              Register
+            </button>
+          </div>
+        </form>
+
+        <p class="auth-switch-text">
+          Already have an account?
+          <button class="auth-switch-btn" id="switch_page" type="button">
+            Login now.
+          </button>
+        </p>
+      </section>
+    </template>
+
+    <script src="navigation.js" type="module"></script>
+  </body>
+</html>

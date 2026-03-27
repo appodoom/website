@@ -1,0 +1,438 @@
+/* =========================================
+   ADMIN PAGE LAYOUT
+   ========================================= */
+
+.admin-page {
+  margin-top: 80px;
+  padding: 30px 20px 50px;
+}
+
+.admin-shell {
+  display: flex;
+  align-items: flex-start;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* =========================================
+   SIDEBAR
+   ========================================= */
+
+.admin-sidebar {
+  width: 240px;
+  flex: 0 0 240px;
+  border-right: 1px solid var(--border);
+  background: linear-gradient(var(--gray-1), var(--gray-2));
+  box-shadow: inset -1px 0 0 #fff;
+  min-height: 620px;
+}
+
+.admin-sidebar-title {
+  padding: 18px 16px 14px;
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  text-shadow: 0 1px 0 #fff;
+}
+
+.admin-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+}
+
+.admin-nav-btn {
+  appearance: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-top: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 10px 16px;
+  cursor: pointer;
+  text-shadow: 0 1px 0 #fff;
+}
+
+.admin-nav-btn:hover:not(:disabled) {
+  background: linear-gradient(#ffffff, #eeeeee);
+  border-top-color: var(--gray-3);
+  border-bottom-color: var(--gray-3);
+}
+
+.admin-nav-btn.active {
+  background: linear-gradient(var(--gray-0), var(--gray-1));
+  border-top-color: var(--border);
+  border-bottom-color: var(--border);
+  color: var(--accent);
+  font-weight: bold;
+  box-shadow: inset 0 1px 0 #fff;
+}
+
+.admin-nav-btn.disabled {
+  color: var(--gray-5);
+  cursor: default;
+}
+
+.admin-nav-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+
+/* =========================================
+   MAIN AREA
+   ========================================= */
+
+.admin-main {
+  flex: 1;
+  min-width: 0;
+  padding: 24px;
+}
+
+.admin-view {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.admin-view-header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-view-title {
+  margin: 0 0 6px;
+  font-size: 26px;
+  color: var(--text);
+  text-shadow: 0 1px 0 #fff;
+}
+
+.admin-view-subtitle {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.admin-panel {
+  min-height: 380px;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* =========================================
+   USERS / QUESTIONS LISTS
+   ========================================= */
+
+.users,
+.questions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--gray-3);
+  border-radius: var(--radius);
+  background: linear-gradient(#ffffff, #f8f8f8);
+  box-shadow: var(--shadow-inner-light);
+}
+
+.admin-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-row-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--text);
+}
+
+.admin-row-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.admin-row-controls {
+  flex-shrink: 0;
+}
+
+.admin-row select {
+  min-width: 140px;
+}
+
+/* =========================================
+   MODAL
+   ========================================= */
+
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(40, 40, 40, 0.45);
+}
+
+.modal.open {
+  display: block;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 520px;
+  margin: 120px auto 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(var(--gray-1), var(--gray-3));
+  box-shadow: var(--shadow-inner-light);
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text);
+  text-shadow: 0 1px 0 #fff;
+}
+
+.close-button {
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(#ffffff, #e6e6e6);
+  color: var(--text);
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.close-button:hover {
+  background: linear-gradient(#ffffff, #dddddd);
+}
+
+#add-question-form {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-group label {
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--text-muted);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+/* =========================================
+   USER MENU
+   ========================================= */
+
+.admin-navbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.user-menu-container {
+  position: relative;
+}
+
+.user-menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(#ffffff, #e6e6e6);
+  box-shadow:
+    var(--shadow-inner-light),
+    0 1px 1px rgba(0, 0, 0, 0.05);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  text-shadow: 0 1px 0 #fff;
+  cursor: pointer;
+}
+
+.user-menu-toggle:hover {
+  background: linear-gradient(#ffffff, #dddddd);
+}
+
+.user-menu-toggle.open {
+  background: linear-gradient(#e6e6e6, #ffffff);
+  box-shadow: var(--shadow-inner-soft);
+}
+
+.username {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-arrow {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  display: none;
+  z-index: 1000;
+}
+
+.user-dropdown.open {
+  display: block;
+}
+
+.dropdown-content {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-outer);
+  padding: 4px 0;
+}
+
+.dropdown-content a {
+  display: block;
+  padding: 7px 14px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.dropdown-content a:hover {
+  background: var(--gray-2);
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* =========================================
+   TOASTS
+   ========================================= */
+
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+}
+
+.toast {
+  min-width: 240px;
+  max-width: 420px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: 1px solid #2b2b2b;
+  border-radius: var(--radius);
+  background: linear-gradient(#4a4a4a, #2f2f2f);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 13px;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 1px 3px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.toast.show {
+  opacity: 1;
+}
+
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+
+@media (max-width: 900px) {
+  .admin-shell {
+    flex-direction: column;
+  }
+
+  .admin-sidebar {
+    width: 100%;
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .admin-main {
+    width: 100%;
+  }
+}
+
+@media (max-width: 700px) {
+  .admin-page {
+    padding: 20px 12px 32px;
+  }
+
+  .admin-main {
+    padding: 18px;
+  }
+
+  .admin-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-row select {
+    width: 100%;
+  }
+
+  .username {
+    max-width: 110px;
+  }
+
+  .modal-content {
+    margin: 80px 12px 0;
+    width: auto;
+  }
+}

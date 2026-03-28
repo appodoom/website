@@ -221,14 +221,15 @@ def export_chat():
     return response
 
 
-if __name__ == "__main__":
-    print("[INFER] Loading model...")
-    model, tok2id, id2tok, CTX_SIZE = load_model("params.pt", device="cpu")
-    print("[INFER] Model loaded")
+print("[INFER] Loading model...")
+model, tok2id, id2tok, CTX_SIZE = load_model("params.pt", device="cpu")
+print("[INFER] Model loaded")
 
-    # Create necessary directories
-    Path("sessions").mkdir(exist_ok=True)
-    Path("tmp").mkdir(exist_ok=True)
-    
-    app.run(host="0.0.0.0",port=5000)
-    print("[INFER] Server running on port 5000")
+# Create necessary directories
+Path("sessions").mkdir(exist_ok=True)
+Path("tmp").mkdir(exist_ok=True)
+
+# if __name__ == "__main__":    
+    ###### BECAUSE OF GUNICORN
+    # app.run(host="0.0.0.0",port=5000)
+    # print("[INFER] Server running on port 5000")

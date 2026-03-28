@@ -15,10 +15,10 @@ COPY requirements.txt .
 # Upgrade pip and install CPU PyTorch first, then the rest
 RUN pip install --upgrade pip setuptools wheel && \
     pip install torch --index-url https://download.pytorch.org/whl/cpu --no-cache-dir && \
-    pip install --no-cache-dir Flask==3.1.3 flask_cors==6.0.2 librosa==0.11.0 numpy==2.4.2 python-dotenv==1.2.2 soundfile==0.13.1
+    pip install --no-cache-dir Flask==3.1.3 flask_cors==6.0.2 librosa==0.11.0 numpy==2.4.2 python-dotenv==1.2.2 soundfile==0.13.1 gunicorn
 
 # Copy the rest of your project
 COPY . .
 
 EXPOSE 5000
-CMD ["python3", "server.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "-w", "1", "--threads", "4", "server:app"]

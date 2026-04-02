@@ -1,15 +1,17 @@
 export async function page3script() {
-  const body = JSON.stringify({
+  const json = {
     cycleLength: localStorage.getItem("cycleLength"),
     matrix: localStorage.getItem("matrix"),
     maxSubd: localStorage.getItem("maxSubd"),
     numOfCycles: localStorage.getItem("numOfCycles"),
-    std: localStorage.getItem("std"),
+    std: localStorage.getItem("std") || 0,
     tempo: localStorage.getItem("tempo"),
-    tempoVariation: localStorage.getItem("tempoVariation"),
+    tempoVariation: localStorage.getItem("tempoVariation") || 0,
     skeleton: localStorage.getItem("skeleton"),
-    amplitudeVariation: localStorage.getItem("amplitudeVariation"),
-  });
+    amplitudeVariation: localStorage.getItem("amplitudeVariation") || 100,
+  };
+
+  const body = JSON.stringify(json);
 
   const audioContainer = document.getElementById("audio-container");
   const publishButton = document.getElementById("publish-btn");

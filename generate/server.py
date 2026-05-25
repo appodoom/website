@@ -185,7 +185,7 @@ async def generate(request: Request):
         params = {
             "std": float(data.get("std", 0)),
             "tempoVariation": float(data.get("tempoVariation", 0)),
-            "amplitudeVariation": float(data.get("amplitudeVariation", 100)),
+            "amplitudeVariation": float(data.get("amplitudeVariation", 50)),
             "numOfCycles": int(data.get("numOfCycles", 1)),
             "cycleLength": float(data.get("cycleLength", 4)),
             "tempo": float(data.get("tempo", 120)),

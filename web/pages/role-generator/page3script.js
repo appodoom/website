@@ -8,7 +8,7 @@ export async function page3script() {
     tempo: localStorage.getItem("tempo"),
     tempoVariation: localStorage.getItem("tempoVariation") || 0,
     skeleton: localStorage.getItem("skeleton"),
-    amplitudeVariation: localStorage.getItem("amplitudeVariation") || 100,
+    amplitudeVariation: localStorage.getItem("amplitudeVariation") || 50,
   };
 
   const body = JSON.stringify(json);

@@ -4,7 +4,7 @@ export async function page3script() {
     matrix: localStorage.getItem("matrix"),
     maxSubd: localStorage.getItem("maxSubd"),
     numOfCycles: localStorage.getItem("numOfCycles"),
-    std: localStorage.getItem("std") || 0,
+    std: localStorage.getItem("std") || 100,
     tempo: localStorage.getItem("tempo"),
     tempoVariation: localStorage.getItem("tempoVariation") || 0,
     skeleton: localStorage.getItem("skeleton"),

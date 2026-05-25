@@ -183,7 +183,7 @@ async def generate(request: Request):
         
         # Validate and parse parameters with defaults
         params = {
-            "std": float(data.get("std", 0)),
+            "std": float(data.get("std", 100)),
             "tempoVariation": float(data.get("tempoVariation", 0)),
             "amplitudeVariation": float(data.get("amplitudeVariation", 50)),
             "numOfCycles": int(data.get("numOfCycles", 1)),

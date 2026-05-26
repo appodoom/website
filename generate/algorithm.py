@@ -341,6 +341,10 @@ class DerboukaGenerator:
                         curr_sample += maxsubd_length_arr[index_of_curr_subd_in_beat]
                         no_overlap = False
                         break
+                
+                if curr_sample < added_hits_intervals[0][0]:
+                    no_overlap = False
+                    curr_sample += maxsubd_length_arr[index_of_curr_subd_in_beat]
                         
                 if no_overlap:
                     y[curr_sample:curr_sample + add_len] += (

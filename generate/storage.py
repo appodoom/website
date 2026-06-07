@@ -50,7 +50,6 @@ class S3Manager:
     async def upload_file(self, local_path: str, s3_key: str, content_type: str = None) -> str:
         """
         Upload a file to S3 with retries.
-        Returns the S3 URL.
         """
         try:
             client = await self._get_client()
@@ -67,9 +66,7 @@ class S3Manager:
                     ExtraArgs=extra_args if extra_args else None
                 )
             
-            url = f"https://{settings.S3_BUCKET}.s3.{settings.S3_REGION}.amazonaws.com/{s3_key}"
             logger.info(f"Uploaded {s3_key} to S3")
-            return url
             
         except ClientError as e:
             logger.error(f"S3 upload failed for {s3_key}: {e}")
@@ -78,25 +75,21 @@ class S3Manager:
     async def upload_files_batch(self, file_mappings: Dict[str, str]) -> Dict[str, str]:
         """
         Upload multiple files in parallel.
-        file_mappings: {local_path: s3_key}
-        Returns: {local_path: s3_url}
+        file_mappings: {s3_key: local_path}
+        Returns: nothing
         """
         tasks = []
-        for local_path, s3_key in file_mappings.items():
+        for s3_key, local_path in file_mappings.items():
             content_type = "audio/wav" if s3_key.endswith('.wav') else "application/octet-stream"
             tasks.append(self.upload_file(local_path, s3_key, content_type))
         
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
-        urls = {}
-        for (local_path, _), result in zip(file_mappings.items(), results):
+        for (_, local_path), result in zip(file_mappings.items(), results):
             if isinstance(result, Exception):
                 logger.error(f"Failed to upload {local_path}: {result}")
-                urls[local_path] = None
-            else:
-                urls[local_path] = result
+                #urls[local_path] = None
         
-        return urls
     
     async def close(self):
         """Close S3 client"""
@@ -109,7 +102,7 @@ class DatabaseManager:
     Manages database operations with connection pooling.
     """
     
-    async def save_sound(self, sound_id: str, user_id: str, settings_dict: Dict[str, Any], url: str) -> Sound:
+    async def save_sound(self, sound_id: str, user_id: str, settings_dict: Dict[str, Any], tags: list[str]) -> Sound:
         """
         Save sound metadata to database.
         """
@@ -119,7 +112,7 @@ class DatabaseManager:
                     id=sound_id,
                     generated_by=user_id,
                     settings=settings_dict,
-                    url=url
+                    tags=tags
                 )
                 session.add(sound)
                 await session.commit()

@@ -40,6 +40,9 @@
             <button class="admin-nav-btn" id="nav-questions" type="button">
               Edit rating questions
             </button>
+            <button class="admin-nav-btn" id="nav-tags" type="button">
+              Edit tags
+            </button>
 
             <div class="admin-nav-divider"></div>
 
@@ -118,6 +121,28 @@
           <button class="btn" id="add_question" type="button">
             Add a question
           </button>
+        </div>
+      </section>
+    </template>
+
+    <template id="page-2">
+      <section class="admin-view">
+        <div class="admin-view-header">
+          <h1 class="admin-view-title">Edit tags</h1>
+          <p class="admin-view-subtitle">
+            Manage available tags that can be attached to generated audio.
+          </p>
+        </div>
+
+        <div class="panel admin-panel">
+          <div class="tags tagsList" id="tagsList"></div>
+        </div>
+
+        <div class="admin-actions">
+          <button class="btn btn-primary main_content_submit" type="button">
+            Submit changes
+          </button>
+          <button class="btn" id="add_tag" type="button">Add a tag</button>
         </div>
       </section>
     </template>

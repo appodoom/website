@@ -134,7 +134,8 @@
    ========================================= */
 
 .users,
-.questions {
+.questions,
+.tags {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -239,7 +240,8 @@
   background: linear-gradient(#ffffff, #dddddd);
 }
 
-#add-question-form {
+#add-question-form,
+#add-tag-form {
   padding: 16px;
   display: flex;
   flex-direction: column;

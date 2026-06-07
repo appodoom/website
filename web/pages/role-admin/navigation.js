@@ -115,6 +115,11 @@ document.getElementById("nav-questions").addEventListener("click", () => {
   renderPage(pageId);
 });
 
+document.getElementById("nav-tags").addEventListener("click", () => {
+  pageId[0] = 2;
+  renderPage(pageId);
+});
+
 (async () => {
   await initUserMenu();
   await renderPage(pageId);

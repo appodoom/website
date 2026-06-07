@@ -34,11 +34,14 @@ class Sound(Base):
     # foreign key to users.id
     generated_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
 
-    # s3 url
-    url: Mapped[str] = mapped_column(String, nullable=False)
+    # s3 url (deprecated)
+    # url: Mapped[str] = mapped_column(String, nullable=False)
 
     # JSONB column for storing settings
     settings: Mapped[dict] = mapped_column(JSONB, nullable=False, default=lambda: {})
+    
+    # Tags (instead of s3 url)
+    tags: Mapped[list] = mapped_column(JSONB, nullable=False, default=lambda: [])
 
 
 postgres_user = os.getenv("POSTGRES_USER")

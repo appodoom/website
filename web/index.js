@@ -22,7 +22,14 @@ const {
 } = require("./paths.js");
 const { validate, getUserId } = require("./utils");
 require("dotenv").config({ path: "../.env" });
-const { Rating, Question, User, Sound, sequelize } = require("./db/schemas.js");
+const {
+  Rating,
+  Question,
+  Tag,
+  User,
+  Sound,
+  sequelize,
+} = require("./db/schemas.js");
 const {
   log,
   generatorRoleRequired,
@@ -297,6 +304,58 @@ app.post("/web/api/questions/", adminRoleRequired, async (req, res) => {
     const q = await Question.create({
       id,
       question,
+      description: description || "",
+      active,
+    });
+
+    if (!q) {
+      throw new Error();
+      return;
+    }
+
+    res.sendStatus(200);
+  } catch (e) {
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
+app.get("/web/api/tags/", generatorRoleRequired, async (req, res) => {
+  try {
+    const tags = await Tag.findAll();
+    res.status(200).json({ tags });
+  } catch (e) {
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
+app.put("/web/api/tags/", adminRoleRequired, async (req, res) => {
+  try {
+    const tags = req.body;
+    const updatePromises = Object.entries(tags).map(([id, newActive]) => {
+      Tag.update({ active: newActive }, { where: { id } });
+    });
+
+    await Promise.all(updatePromises);
+
+    res.sendStatus(200);
+  } catch (e) {
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
+app.post("/web/api/tags/", adminRoleRequired, async (req, res) => {
+  try {
+    const { tag, description, active } = req.body;
+    if (active === null) active = true;
+    if (!validate(1, tag)) {
+      res.status(400);
+      res.json({ error: "Please fill all required fields" });
+    }
+
+    const id = uuid4();
+    const q = await Tag.create({
+      id,
+      tag,
       description: description || "",
       active,
     });

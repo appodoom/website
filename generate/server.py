@@ -120,8 +120,14 @@ async def publish(request: Request, user_id: str = Depends(get_current_user)):
     # user_id comes from the dependency, replaces request.user_id
     
     audio_id = request.query_params.get("id")  # replaces request.args.get("id")
+    tags = request.query_params.get("tags")
     if not audio_id:
         raise ValidationError("Missing ?id parameter")
+    
+    if not tags:
+        raise ValidationError("Missing ?tags parameter")
+    
+    tags = [tag.replace("/", "_").strip() for tag in tags.split(",")] # replace / with _ to make it safer
     
     data_dir = settings.AUDIO_TEMP_DIR
     json_path = os.path.join(data_dir, f"{audio_id}.json")
@@ -141,20 +147,18 @@ async def publish(request: Request, user_id: str = Depends(get_current_user)):
         async with aiofiles.open(json_path, "r", encoding="utf-8") as f:
             metadata_str = await f.read()
             metadata = json.loads(metadata_str)
-        
+
         # Upload to S3 in parallel
-        upload_mappings = {
-            derbake_path: f"{audio_id}.derbake"
-        }
+        upload_mappings = {f"{tag}/{audio_id}.derbake": derbake_path for tag in tags}
         
-        urls = await s3_manager.upload_files_batch(upload_mappings)
-        uploaded_url = f"https://{settings.S3_BUCKET}.s3.{settings.S3_REGION}.amazonaws.com/{audio_id}.derbake"
+        await s3_manager.upload_files_batch(upload_mappings)
+
         # Save to database
         await db_manager.save_sound(
             sound_id=audio_id,
             user_id=user_id,  # replaces request.user_id
             settings_dict=metadata,
-            url=uploaded_url
+            tags=tags
         )
         
         # Delete local files
@@ -165,7 +169,7 @@ async def publish(request: Request, user_id: str = Depends(get_current_user)):
         await asyncio.gather(*delete_tasks, return_exceptions=True)
         
         logger.info(f"Published audio {audio_id} for user {user_id}")
-        return {"status": "ok", "id": audio_id, "url": uploaded_url}  # Auto 200
+        return {"status": "ok", "id": audio_id}  # Auto 200
         
     except Exception as e:
         logger.error(f"Publish failed for {audio_id}: {e}", exc_info=True)

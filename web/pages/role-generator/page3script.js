@@ -1,3 +1,27 @@
+function showToast(message, duration = 3200) {
+  const container = document.getElementById("toast-container");
+  const toast = document.createElement("div");
+
+  toast.className = "toast";
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.classList.add("show");
+  });
+
+  setTimeout(() => {
+    toast.classList.remove("show");
+    toast.addEventListener(
+      "transitionend",
+      () => {
+        toast.remove();
+      },
+      { once: true },
+    );
+  }, duration);
+}
+
 export async function page3script() {
   const json = {
     cycleLength: localStorage.getItem("cycleLength"),
@@ -15,11 +39,53 @@ export async function page3script() {
 
   const audioContainer = document.getElementById("audio-container");
   const publishButton = document.getElementById("publish-btn");
+  const checkboxContainer = document.getElementById("checkbox-container");
   const backButton = document.getElementById("next-btn");
 
   try {
-    audioContainer.innerHTML = `<div class="loading">Loading audio...</div>`;
+    checkboxContainer.innerHTML = `<div class="loading">Loading tags...</div>`;
 
+    const res = await fetch("/web/api/tags/");
+    if (!res.ok) {
+      const { error } = await res.json();
+      throw new Error(error);
+    }
+
+    if (res.redirected) {
+      window.location.href = res.url;
+      return;
+    }
+
+    const { tags } = await res.json();
+
+    checkboxContainer.innerHTML = "";
+
+    for (const tagData of tags) {
+      const { tag, id, active } = tagData;
+      if (!active) continue;
+
+      const row = document.createElement("div");
+      row.className = "checkbox-row";
+
+      const label = document.createElement("label");
+
+      label.textContent = tag;
+
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.dataset.tag = tag;
+
+      label.appendChild(input);
+      row.appendChild(label);
+      checkboxContainer.appendChild(row);
+    }
+  } catch (error) {
+    checkboxContainer.innerHTML = `<div class="error">Failed to load tags.</div>`;
+    console.error("Tags fetch error:", error.message);
+  }
+
+  try {
+    audioContainer.innerHTML = `<div class="loading">Loading audio...</div>`;
     const res = await fetch("/api/generate/", {
       method: "POST",
       body,
@@ -55,12 +121,19 @@ export async function page3script() {
     publishButton.addEventListener(
       "click",
       async () => {
+        const tags = Array.from(
+          document.querySelectorAll('input[type="checkbox"]:checked'),
+        ).map((cb) => cb.dataset.tag);
+        if (tags.length === 0) {
+          showToast("Check at least one tag before publishing");
+          return;
+        }
         publishButton.innerText = "Publishing...";
         publishButton.disabled = true;
 
         try {
           const publishRes = await fetch(
-            `/api/generate/publish/?id=${audioId}`,
+            `/api/generate/publish/?id=${audioId}&tags=${tags.join(",")}`,
             {
               credentials: "include",
             },

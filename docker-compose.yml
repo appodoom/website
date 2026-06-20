@@ -31,7 +31,7 @@ services:
     depends_on:
       - db
       - web
-      - generate
+      - percussion-engine
 
   web:
     build:
@@ -45,9 +45,9 @@ services:
     depends_on:
       - db
 
-  generate:
+  percussion-engine:
     build:
-      context: ./generate
+      context: ./percussion-engine
       dockerfile: Dockerfile
     restart: always
     env_file:

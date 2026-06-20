@@ -1,4 +1,4 @@
-# fastapi_server.py
+# main.py
 from fastapi import FastAPI, HTTPException, Request, Response, Depends
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,15 +16,15 @@ from functools import wraps
 from contextlib import asynccontextmanager
 import numpy as np
 
-from settings import settings
-from algorithm import generator
-from db.schema import init_models
-from exceptions import (
+from app.core.config import settings
+from app.services.generator import generator
+from app.db.models import init_models
+from app.core.exceptions import (
     DerboukaError, AuthenticationError, ValidationError,
     StorageError, AudioGenerationError
 )
-from storage import s3_manager, db_manager
-from sample_manager import sample_manager
+from app.services.storage import s3_manager, db_manager
+from app.services.samples import sample_manager
 
 # Configure logging
 logging.basicConfig(
@@ -321,7 +321,7 @@ async def generate(request: Request):
                 yield chunk_bytes
 
             try:
-                os.remove(f"./tmp/{audio_id}.dat")
+                os.remove(str(settings.AUDIO_MEMMAP_DIR / f"{audio_id}.dat"))
             except:
                 pass
 
@@ -338,6 +338,48 @@ async def generate(request: Request):
     except Exception as e:
         logger.error(f"Generation failed: {e}", exc_info=True)
         raise
+    
+@app.get("/api/generate/files/")
+async def get_files(
+    request: Request,
+    user_id: str = Depends(get_current_user)
+):
+    # TODO: replace with proper role check
+    # if not user_has_role(user_id, "rator"):
+    #     raise AuthenticationError("Insufficient permissions")
+
+    try:
+        files = await s3_manager.list_files()
+
+        logger.info(
+            f"User {user_id} requested file listing ({len(files)} files)"
+        )
+
+        return {
+            "status": "ok",
+            "files": files
+        }
+
+    except Exception as e:
+        logger.error(
+            f"Failed to retrieve file listing for user {user_id}: {e}",
+            exc_info=True
+        )
+        raise
+
+@app.get("/api/generate/play/")
+async def play_file(
+    request: Request
+):
+    try:
+        file = request.params.get("file")
+        if not file or file == "":
+            raise "No file provided"
+        
+    except Exception as e:
+        logger.error(f"Failed to play file {file}: {e}", exec_info=True)
+        raise
+
 # ============================================================================
 # Lifespan management - replaces create_app() and shutdown()
 # ============================================================================
@@ -373,7 +415,7 @@ if __name__ == "__main__":
     
     # Removed WsgiToAsgi because FastAPI is native ASGI
     uvicorn.run(
-        "server:app",  # String reference instead of app object
+        "app.main:app",  # String reference instead of app object
         host=settings.HOST,
         port=settings.GENERATE_PORT,
         log_level="info",

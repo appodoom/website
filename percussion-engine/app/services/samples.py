@@ -1,26 +1,27 @@
+# samples.py
 import random
 import os
 import librosa
+from app.core.config import settings
 
 class SampleManager():
     def __init__(self):
-        self.NOTES = ["D","OTA","OTI","PA2","S"]
-        self.PATHS = {
-            "D":"./sounds/doums",
-            "OTA":"./sounds/taks",
-            "OTI": "./sounds/tiks",
-            "PA2":"./sounds/pa2s",
-            "S": "./sounds/silence"
-        }
+        self.NOTES = list(settings.SAMPLE_PATHS.keys())
+        self.PATHS = settings.SAMPLE_PATHS
         self.AUDIO_SOUNDS = {}
-        self.SAMPLE_RATE = 48000
+        self.SAMPLE_RATE = settings.AUDIO_SAMPLE_RATE
 
     def preload_samples(self):
+        print(self.NOTES)
         for note in self.NOTES:
             counter = 0
             print("FETCHING AUDIO FOR ", note)
             directory = self.PATHS.get(note)
-            files = os.listdir(directory)
+            if not os.path.exists(directory):
+                print(f"Directory {directory} not found for note {note}")
+                continue
+                
+            files = [f for f in os.listdir(directory) if f.endswith(('.wav', '.mp3'))]
             curr = {}
             for file in files:
                 counter += 1
@@ -31,12 +32,14 @@ class SampleManager():
 
 
     def get_random_sample(self, symbol:str):
+        if symbol not in self.AUDIO_SOUNDS or not self.AUDIO_SOUNDS[symbol]:
+            raise ValueError(f"No samples loaded for {symbol}")
         num = random.choice(list(self.AUDIO_SOUNDS[symbol].keys()))
         return symbol, num, self.AUDIO_SOUNDS[symbol][num][0]
 
     def get_y(self, symbol:str, num:int, length:int):
-        y= self.AUDIO_SOUNDS[symbol][num][1]
-        assert len(y)==length
+        y = self.AUDIO_SOUNDS[symbol][num][1]
+        assert len(y) == length
         return y
 
 sample_manager = SampleManager()

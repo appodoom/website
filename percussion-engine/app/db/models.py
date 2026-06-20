@@ -1,10 +1,11 @@
+# models.py
 from typing import Optional
 import os
 from sqlalchemy import String, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncAttrs, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-
+from app.core.config import settings
 
 # ---------------------------------------------------------------------
 # Base setup
@@ -34,9 +35,6 @@ class Sound(Base):
     # foreign key to users.id
     generated_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
 
-    # s3 url (deprecated)
-    # url: Mapped[str] = mapped_column(String, nullable=False)
-
     # JSONB column for storing settings
     settings: Mapped[dict] = mapped_column(JSONB, nullable=False, default=lambda: {})
     
@@ -44,15 +42,11 @@ class Sound(Base):
     tags: Mapped[list] = mapped_column(JSONB, nullable=False, default=lambda: [])
 
 
-postgres_user = os.getenv("POSTGRES_USER")
-postgres_password = os.getenv("POSTGRES_PASSWORD")
-postgres_db_name = os.getenv("POSTGRES_DB")
-postgres_host = os.getenv("POSTGRES_HOST")
+DATABASE_URL = f"postgresql+asyncpg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:5432/{settings.POSTGRES_DB}"
 
-DATABASE_URL = f"postgresql+asyncpg://{postgres_user}:{postgres_password}@{postgres_host}:5432/{postgres_db_name}"
-
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(DATABASE_URL, echo=settings.DATABASE_ECHO)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+
 async def init_models():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

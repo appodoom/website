@@ -3,23 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DerboukaGPT – Rating</title>
+    <title>DerboukaGPT - Rating</title>
     <link rel="stylesheet" href="/web/shared/css/global.css" />
     <link rel="stylesheet" href="index.css" />
   </head>
-
   <body>
     <header>
       <div class="navbar">
         <div class="brand big-logo"></div>
-
         <div class="page-navbar-right">
           <div class="user-menu-container">
             <button class="user-menu-toggle" id="userMenuToggle" type="button">
-              <span class="username" id="usernameDisplay">Loading...</span>
+              <span class="username" id="usernameDisplay"> Loading... </span>
               <span class="dropdown-arrow">▼</span>
             </button>
-
             <div class="user-dropdown" id="userDropdown">
               <div class="dropdown-content" id="dropdownContent"></div>
             </div>
@@ -27,46 +24,20 @@
         </div>
       </div>
     </header>
-
-    <main class="rater-page">
-      <div class="container rater-shell">
-        <section class="rater-panel">
-          <div class="rater-header">
-            <h1 class="rater-title">Audio Rating</h1>
-            <p class="rater-subtitle">
-              Listen to the sample below and rate it using the active questions.
-            </p>
+    <main class="library-page">
+      <div class="container library-shell">
+        <section class="library-panel">
+          <div class="library-header">
+            <h1 class="library-title" id="pageTitle">Audio Library</h1>
+            <p class="library-subtitle" id="breadcrumb">Library</p>
           </div>
-
-          <div class="panel audio-panel">
-            <div class="audio-panel-title">Audio Sample</div>
-            <div class="sound" id="audioContainer">Loading random audio...</div>
-          </div>
-
-          <div class="panel questions-panel">
-            <div class="questions-panel-title">Evaluation Questions</div>
-            <div class="questions" id="questionsContainer"></div>
-          </div>
-
-          <div class="rater-actions">
-            <button
-              class="btn btn-primary"
-              id="submitRatingButton"
-              type="button"
-            >
-              Submit rating
-            </button>
-            <button class="btn" id="refresh-button" type="button">
-              New audio
-            </button>
-          </div>
+          <div id="main_content"></div>
         </section>
       </div>
     </main>
     <footer class="footer">
       <div class="footer-inner">
         <div class="footer-left">© 2026 DerboukaGPT</div>
-
         <div class="footer-right">
           <a href="/web/">Home</a>
           <a href="/web/#about">About</a>
@@ -77,70 +48,37 @@
         </div>
       </div>
     </footer>
-
     <div id="toast-container" class="toast-container"></div>
-
-    <script>
-      async function initUserMenu() {
-        try {
-          const response = await fetch("/web/api/me/");
-
-          if (!response.ok) {
-            throw new Error("Failed to fetch user data");
-          }
-
-          const userData = await response.json();
-
-          const usernameDisplay = document.getElementById("usernameDisplay");
-          const dropdownContent = document.getElementById("dropdownContent");
-          const userMenuToggle = document.getElementById("userMenuToggle");
-          const userDropdown = document.getElementById("userDropdown");
-
-          usernameDisplay.textContent = userData.username || "Account";
-          dropdownContent.innerHTML = "";
-
-          Object.entries(userData).forEach(([key, value]) => {
-            if (key === "username") return;
-
-            const link = document.createElement("a");
-            link.href = value;
-            link.textContent = key.charAt(0).toUpperCase() + key.slice(1);
-            dropdownContent.appendChild(link);
-          });
-
-          userMenuToggle.addEventListener("click", (event) => {
-            event.stopPropagation();
-            userDropdown.classList.toggle("open");
-            userMenuToggle.classList.toggle("open");
-          });
-
-          document.addEventListener("click", (event) => {
-            if (
-              !userMenuToggle.contains(event.target) &&
-              !userDropdown.contains(event.target)
-            ) {
-              userDropdown.classList.remove("open");
-              userMenuToggle.classList.remove("open");
-            }
-          });
-        } catch (error) {
-          console.error("Error initializing user menu:", error);
-          const usernameDisplay = document.getElementById("usernameDisplay");
-          if (usernameDisplay) {
-            usernameDisplay.textContent = "Account";
-          }
-        }
-      }
-
-      document
-        .getElementById("refresh-button")
-        .addEventListener("click", () => {
-          window.location.reload();
-        });
-
-      document.addEventListener("DOMContentLoaded", initUserMenu);
-    </script>
-
-    <script src="ratorscript.js"></script>
+    <template id="page-0">
+      <div class="panel explorer-panel">
+        <div class="panel-title">Audio Files</div>
+        <div id="fileContainer" class="file-container">Loading...</div>
+      </div>
+    </template>
+    <template id="page-1">
+      <div class="player-page">
+        <button class="btn" id="backButton" type="button">← Back</button>
+        <div class="panel">
+          <div class="panel-title">Audio Player</div>
+          <div id="audioContainer" class="audio-placeholder">Loading...</div>
+        </div>
+        <div class="panel rating-panel">
+          <button class="collapse-button" id="ratingToggle" type="button">
+            ▶ Rating
+          </button>
+          <div id="ratingContent" class="rating-content collapsed">
+            <div id="questionsContainer" class="questions"></div>
+            <button
+              class="btn btn-primary"
+              id="submitRatingButton"
+              type="button"
+            >
+              Submit rating
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+    <script src="navigation.js"></script>
   </body>
 </html>

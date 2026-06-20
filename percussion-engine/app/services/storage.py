@@ -7,9 +7,9 @@ from typing import Optional, Dict, Any
 import logging
 from botocore.config import Config
 from botocore.exceptions import ClientError
-from settings import settings
-from db.schema import AsyncSessionLocal, Sound
-from exceptions import StorageError
+from app.core.config import settings
+from app.db.models import AsyncSessionLocal, Sound
+from app.core.exceptions import StorageError
 from sqlalchemy.exc import SQLAlchemyError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
@@ -89,7 +89,42 @@ class S3Manager:
             if isinstance(result, Exception):
                 logger.error(f"Failed to upload {local_path}: {result}")
                 #urls[local_path] = None
+    
+    async def list_files(self) -> list[str]:
+        """
+        List all files in the S3 bucket.
+        Returns: list of S3 keys
+        """
+        try:
+            client = await self._get_client()
+
+            response = await client.list_objects_v2(
+                Bucket=settings.S3_BUCKET
+            )
+
+            contents = response.get("Contents", [])
+            files = [obj["Key"] for obj in contents]
+
+            logger.info(f"Listed {len(files)} files from S3")
+
+            return files
+
+        except ClientError as e:
+            logger.error(f"Failed to list S3 files: {e}")
+            raise StorageError(f"Failed to list files: {e}") from e
+    
+    async def get_file(self, file) -> str:
+        client = await self._get_client()
         
+        response = await client.get_object(
+        Bucket=self.bucket_name,
+        Key=file
+        )
+
+        async with response["Body"] as stream:
+            content = await stream.read()
+
+        return content.decode("utf-8")
     
     async def close(self):
         """Close S3 client"""

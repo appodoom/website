@@ -1,4 +1,4 @@
-# algorithm.py
+# generator.py
 import numpy as np
 import numpy.typing as npt
 import soundfile as sf
@@ -8,10 +8,10 @@ import random
 import time
 from typing import List, Tuple, Dict, Optional
 from dataclasses import dataclass
-from sample_manager import sample_manager
-from exceptions import AudioGenerationError, ValidationError
+from app.services.samples import sample_manager
+from app.core.exceptions import AudioGenerationError, ValidationError
 import threading
-from settings import settings
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -211,7 +211,8 @@ class DerboukaGenerator:
                 sr = sr
         )
 
-        y = np.memmap(filename=f"./tmp/{uuid}.dat",dtype=np.float32, mode="w+", shape=(total_length_in_samples,))
+        memmap_path = settings.AUDIO_MEMMAP_DIR / f"{uuid}.dat"
+        y = np.memmap(filename=str(memmap_path), dtype=np.float32, mode="w+", shape=(total_length_in_samples,))
 
         # write ~1MB = 300k samples
         nb_chunks = math.floor(total_length_in_samples / self.SIZE_OF_CHUNK)

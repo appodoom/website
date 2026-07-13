@@ -375,7 +375,7 @@ async def play_file(
         file = request.params.get("file")
         if not file or file == "":
             raise "No file provided"
-        
+        print(file)
     except Exception as e:
         logger.error(f"Failed to play file {file}: {e}", exec_info=True)
         raise

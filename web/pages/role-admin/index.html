@@ -43,14 +43,13 @@
             <button class="admin-nav-btn" id="nav-tags" type="button">
               Edit tags
             </button>
-
-            <div class="admin-nav-divider"></div>
-
-            <button class="admin-nav-btn disabled" type="button" disabled>
-              Sound settings
-            </button>
-            <button class="admin-nav-btn disabled" type="button" disabled>
-              Analytics
+            <button
+              class="admin-nav-btn"
+              id="nav-analytics"
+              type="button"
+              type="button"
+            >
+              View Analytics
             </button>
           </nav>
         </aside>
@@ -144,6 +143,19 @@
           </button>
           <button class="btn" id="add_tag" type="button">Add a tag</button>
         </div>
+      </section>
+    </template>
+
+    <template id="page-3">
+      <section class="admin-view">
+        <div class="admin-view-header">
+          <h1 class="admin-view-title">View Analytics</h1>
+          <p class="admin-view-subtitle">
+            Get information about existing data.
+          </p>
+        </div>
+
+        <div class="analytics" id="analyticsContainer"></div>
       </section>
     </template>
 

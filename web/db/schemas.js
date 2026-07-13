@@ -178,6 +178,35 @@ const Tag = sequelize.define(
   },
 );
 
+const Counter = sequelize.define(
+  "Counter",
+  {
+    id: {
+      type: DataTypes.STRING,
+      primaryKey: true,
+      allowNull: false,
+    },
+    category: {
+      type: DataTypes.STRING,
+      defaultValue: "other",
+    },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    count: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+  },
+  {
+    timestamps: false,
+    tableName: "counters",
+    freezeTableName: true,
+    paranoid: true,
+  },
+);
+
 // After defining all models, add associations:
 // Sound associations
 Sound.hasMany(Rating, {
@@ -220,11 +249,12 @@ User.hasMany(Rating, {
     await Question.sync({ alter: false });
     await Rating.sync({ alter: false });
     await Sound.sync({ alter: false });
-    await Tag.sync({ alter: true });
+    await Tag.sync({ alter: false });
+    await Counter.sync({ alter: true, force: true });
     console.log("Tables synced successfully.");
   } catch (err) {
     console.error("Error connecting or syncing:", err);
   }
 })();
 
-module.exports = { Question, Tag, User, Sound, Rating, sequelize };
+module.exports = { Question, Tag, User, Sound, Rating, Counter, sequelize };

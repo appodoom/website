@@ -29,6 +29,7 @@ const {
   User,
   Sound,
   sequelize,
+  Counter,
 } = require("./db/schemas.js");
 const {
   log,
@@ -197,6 +198,7 @@ app.post("/web/api/rate/", ratorRoleRequired, async (req, res) => {
   }
 });
 
+////////////////// DEPRECATED
 app.get("/web/api/random_audio/", ratorRoleRequired, async (req, res) => {
   try {
     const userId = getUserId(req);
@@ -288,6 +290,38 @@ app.put("/web/api/questions/", adminRoleRequired, async (req, res) => {
     res.sendStatus(200);
   } catch (e) {
     res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
+app.get("/web/analytics/", adminRoleRequired, async (req, res) => {
+  try {
+    const counters = await Counter.findAll({
+      attributes: ["category", "name", "count"],
+      order: [
+        ["category", "ASC"],
+        ["name", "ASC"],
+      ],
+    });
+
+    const grouped = {};
+
+    for (const counter of counters) {
+      const category = counter.category || "other";
+
+      if (!grouped[category]) {
+        grouped[category] = {};
+      }
+
+      grouped[category][counter.name] = counter.count;
+    }
+
+    res.status(200).json(grouped);
+  } catch (e) {
+    console.error("Analytics error:", e);
+
+    res.status(500).json({
+      error: "Something went wrong.",
+    });
   }
 });
 

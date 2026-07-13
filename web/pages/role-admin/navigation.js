@@ -27,9 +27,13 @@ function showToast(message, duration = 3200) {
 function setActiveNav(page) {
   const navUsers = document.getElementById("nav-users");
   const navQuestions = document.getElementById("nav-questions");
+  const navTags = document.getElementById("nav-tags");
+  const navAnalytics = document.getElementById("nav-analytics");
 
   navUsers.classList.toggle("active", page === 0);
   navQuestions.classList.toggle("active", page === 1);
+  navTags.classList.toggle("active", page === 2);
+  navAnalytics.classList.toggle("active", page === 3);
 }
 
 async function renderPage(pageIdRef) {
@@ -117,6 +121,11 @@ document.getElementById("nav-questions").addEventListener("click", () => {
 
 document.getElementById("nav-tags").addEventListener("click", () => {
   pageId[0] = 2;
+  renderPage(pageId);
+});
+
+document.getElementById("nav-analytics").addEventListener("click", () => {
+  pageId[0] = 3;
   renderPage(pageId);
 });
 

@@ -23,7 +23,7 @@ export async function page1script(pageId) {
   <audio controls>
 
     <source
-      src="/api/generate/play?file=${encodeURIComponent(file)}"
+      src="/api/generate/play/?file=${encodeURIComponent(file)}"
       type="audio/wav">
 
   </audio>

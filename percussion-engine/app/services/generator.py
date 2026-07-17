@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 class GenerationResult:
     """Result of audio generation"""
     audio: npt.NDArray[np.float32]
-    tokens: str
-    generation_time: float
-    num_hits: int
+    tokens: str | None = None
+    generation_time: float | None = None
+    num_hits: int | None = None
 
 class ThreadSafeCounter:
     """Thread-safe counter for statistics"""
@@ -509,6 +509,255 @@ class DerboukaGenerator:
             self.generation_stats["errors"].increment()
             logger.error(f"Generation failed for {uuid}: {e}", exc_info=True)
             raise AudioGenerationError(f"Failed to generate audio: {e}") from e
+        
+class DotderbakePlayer:
+    SUPPORTED_NOTES = ["D", "OTA", "OTI", "PA2", "S"]
+    
+    def __init__(self):
+        self._lock = threading.Lock()
+        self.SIZE_OF_CHUNK = 300_000 # 1MB
+    
+    def apply_cross_fade(self, hit_y: npt.NDArray, fade_samples:int=500):
+        if len(hit_y) <= fade_samples * 2:
+            fade_samples = max(8, len(hit_y) // 4)
+        fade_in = 0.5 * (1 - np.cos(np.linspace(0, np.pi, fade_samples)))
+        fade_out = 0.5 * (1 + np.cos(np.linspace(0, np.pi, fade_samples)))
+        hit_audio = hit_y.copy()
+        hit_audio[:fade_samples] *= fade_in
+        hit_audio[-fade_samples:] *= fade_out
+        return hit_audio
+    
+    def get_audio_metadata(self, hit_type: str):
+        try:
+            return sample_manager.get_random_sample(hit_type)
+        except Exception as e:
+            logger.error(f"Failed to get sample for {hit_type}: {e}")
+            return None
 
+    def get_audio_data(self, hit_type: str, sample_number: int, length: int):
+        try:
+            return sample_manager.get_y(hit_type, sample_number, length)
+        except Exception as e:
+            logger.error(f"Mismatched size for {hit_type}:{sample_number}, got length = {length}")
+
+    def parse_dotderbake(self, data: str):
+        lines = data.split("\n")
+        if len(lines) != 4:
+            return None
+        initial_tempo = float(lines[0])
+        tempos = [float(i) for i in lines[1].split(" ")]
+        skeleton_line = lines[2].split(" ")
+        variations_line = lines[3].split(" ")
+
+        skeleton = []
+        for i in range(0,len(skeleton_line),3):
+            skeleton.append((
+                float(skeleton_line[i].split("_")[1]),
+                skeleton_line[i+1].split("_")[1],
+                int(skeleton_line[i+2].split("_")[1])
+            ))
+
+        return (
+            initial_tempo,
+            tempos,
+            skeleton,
+            variations_line
+        )
+        
+    def get_exact_length(self, initial_tempo:float, skeleton: list[tuple[float, str, int]], tempos:list[float], sr=48000):
+        current_tempo = initial_tempo
+        beat_length_in_samples = int( 60 / current_tempo * sr)
+
+        num_of_beats_in_audio = sum(x[0] for x in skeleton)
+        
+        total_length_in_samples = 0
+        final_list = []
+        skeleton_hits_intervals = []
+        
+        expected_hit_timestamp = 0
+        curr_beat = i = 0
+        tempo_index = 0
+        
+        while curr_beat < num_of_beats_in_audio:
+            beat_duration = skeleton[i][0]
+            
+            curr_beat += beat_duration
+            
+            if int(curr_beat) > tempo_index and int(curr_beat) < len(tempos):
+                tempo_index = int(curr_beat)
+                new_tempo = tempos[tempo_index]
+                current_tempo = new_tempo
+                beat_length_in_samples = int(60/current_tempo * sr)
+            
+            curr_hit = skeleton[i][1]
+            
+            _, sample_num, hit_length = self.get_audio_metadata(curr_hit)
+            
+            expected_hit_timestamp += int(beat_duration * beat_length_in_samples)
+            adjusted_hit_timestamp = expected_hit_timestamp + skeleton[i][2]
+            
+            total_length_in_samples = adjusted_hit_timestamp + hit_length
+            final_list.append((adjusted_hit_timestamp,total_length_in_samples,curr_hit,sample_num))
+            
+            skeleton_hits_intervals.append((adjusted_hit_timestamp,total_length_in_samples))
+            i+=1
+        
+        return total_length_in_samples, final_list, skeleton_hits_intervals
+    
+    def skeleton_replayer(self, uuid: str, amplitude: float, skeleton, initial_tempo, tempos):
+        total_length_in_samples, final_list, skeleton_hits_intervals = self.get_exact_length(
+            initial_tempo,
+            skeleton,
+            tempos
+        )
+        
+        memmap_path = settings.AUDIO_MEMMAP_DIR / f"{uuid}.dat"
+        y = np.memmap(filename=str(memmap_path), dtype=np.float32, mode="w+", shape=(total_length_in_samples,))
+        
+        nb_chunks = math.floor(total_length_in_samples / self.SIZE_OF_CHUNK)
+        remainder = total_length_in_samples % self.SIZE_OF_CHUNK
+        
+        window = (0, self.SIZE_OF_CHUNK)
+        
+        for chunk in range(nb_chunks):
+            inter_chunk_hits = []
+            y_chunk = np.zeros(self.SIZE_OF_CHUNK)
+            
+            for start,end,sym,sample in final_list:
+                if window[0] <= start and end <= window[1]:
+                    newstart = start - window[0]
+                    newend = end - window[0]
+                    y_chunk[newstart:newend] = amplitude*self.get_audio_data(sym,sample,newend-newstart)
+                elif start <= window[1] and end >= window[1]:
+                    inter_chunk_hits.append((start,end,sym,sample))
+                else:
+                    continue
+            y[window[0]:window[1]] = y_chunk
+            for start,end,sym,sample in inter_chunk_hits:
+                y[start:end] += amplitude*self.get_audio_data(sym,sample,end-start)
+            
+            if chunk != nb_chunks - 1:
+                window = (window[1],window[1]+self.SIZE_OF_CHUNK)
+        
+        window = (window[1],total_length_in_samples)
+        y_chunk = np.zeros(window[1] - window[0])
+        
+        for start,end,sym,sample in final_list:
+            if window[0] <= start and end <= window[1]:
+                newstart = start - window[0]
+                newend = end - window[0]
+                y_chunk[newstart:newend] = amplitude * self.get_audio_data(sym,sample,newend-newstart)
+            else:
+                continue
+            
+        y[window[0]:window[1]] = y_chunk
+        
+        return y, skeleton_hits_intervals
+    
+    def subdivision_replay(self, y, added_hits_intervals, variations, initial_tempo, tempos, sr=48000):
+        current_tempo = initial_tempo
+        
+        curr_sample = 0
+        tempo_index = 0
+        beat_index = 0
+        
+        chosen_div = int(variations[0].split("_")[1])
+        
+        beat_length_in_samples = int(60 * sr / current_tempo)
+        maxsubd_length_arr = [int(beat_length_in_samples / chosen_div) for _ in range (chosen_div - 1)]
+        maxsubd_length_arr.append(beat_length_in_samples - sum(maxsubd_length_arr))
+        
+        new_added_hits_intervals = []
+        j = 1
+        index_of_curr_subd_in_beat = 0
+        sample_of_last_beat = 0
+        
+        while curr_sample < len(y) and j < len(variations):
+            if curr_sample >= sample_of_last_beat + beat_length_in_samples:
+                beat_index += 1
+                index_of_curr_subd_in_beat = 0
+                sample_of_last_beat = curr_sample
+                
+                if beat_index < len(tempos):
+                    new_tempo = tempos[beat_index]
+                    current_tempo = new_tempo
+                    beat_length_in_samples = int(60* sr / current_tempo)
+                
+                chosen_div = int(variations[j].split("_")[1])
+                j+=1
+                maxsubd_length_arr = [int(beat_length_in_samples / chosen_div) for _ in range(chosen_div - 1)]
+                maxsubd_length_arr.append(beat_length_in_samples - sum(maxsubd_length_arr))
+                
+            remaining = len(y) - curr_sample
+            
+            chosen_hit = variations[j].split("_")[1]
+            j+=1
+            chosen_amplitude = float(variations[j].split("_")[1])
+            j+=1
+            
+            if chosen_hit == "S":
+                curr_sample += maxsubd_length_arr[index_of_curr_subd_in_beat]
+            else:
+                hit_metadata = self.get_audio_metadata(chosen_hit)
+                hit_y_raw = self.get_audio_data(hit_metadata[0], hit_metadata[1], hit_metadata[2])
+                
+                add_len = min(hit_metadata[2],remaining)
+                hit_y = self.apply_cross_fade(hit_y_raw)
+                
+                y[curr_sample:curr_sample + add_len] += (
+                    chosen_amplitude * hit_y[:add_len]
+                )
+
+                new_added_hits_intervals.append(
+                    (curr_sample, curr_sample + add_len)
+                )
+                
+                curr_sample += maxsubd_length_arr[index_of_curr_subd_in_beat]
+            
+            index_of_curr_subd_in_beat += 1
+            
+        new_added_hits_intervals.extend(added_hits_intervals)
+        
+        return y, new_added_hits_intervals
+
+    def play_file(self, uuid: str, data: str):
+        try:
+            amplitudes = [
+                0.1015 * settings.AUDIO_VOLUME,
+                0.5 * settings.AUDIO_VOLUME,
+                1.0 * settings.AUDIO_VOLUME
+            ]
+            
+            initial_tempo, tempos, skeleton, variations = self.parse_dotderbake(data)
+
+            total_length = self.get_exact_length(
+                initial_tempo=initial_tempo,
+                skeleton=skeleton,
+                tempos=tempos
+            )
+            
+            y, added_hits_intervals = self.skeleton_replayer(
+                uuid=uuid,
+                amplitude=amplitudes[-1],
+                skeleton=skeleton,
+                initial_tempo=initial_tempo,
+                tempos=tempos
+            )
+            
+            y, added_hits_intervals = self.subdivision_replay(
+                y=y,
+                added_hits_intervals=added_hits_intervals,
+                variations=variations,
+                initial_tempo=initial_tempo,
+                tempos=tempos
+            )
+            
+            return GenerationResult(
+                audio=y
+            )
+        except Exception as e:
+            raise AudioGenerationError(f"Failed to generate audio: {e}") from e
+        
 # Global generator instance
 generator = DerboukaGenerator()
+player = DotderbakePlayer()

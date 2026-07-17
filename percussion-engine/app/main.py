@@ -15,9 +15,9 @@ from typing import Dict, Any, Optional
 from functools import wraps
 from contextlib import asynccontextmanager
 import numpy as np
-
+import tempfile
 from app.core.config import settings
-from app.services.generator import generator
+from app.services.generator import generator, player
 from app.db.models import init_models
 from app.core.exceptions import (
     DerboukaError, AuthenticationError, ValidationError,
@@ -372,10 +372,88 @@ async def play_file(
     request: Request
 ):
     try:
-        file = request.params.get("file")
+        file = request.query_params.get("file")
         if not file or file == "":
             raise "No file provided"
-        print(file)
+        
+        # IF TO BE READ ON DISK
+        # with tempfile.TemporaryFile(mode='w+t') as temp_file:
+        #     data = s3_manager.get_file(file)
+        #     # do i need this in memory or on disk?
+        #     temp_file.write(data)
+        
+        # READ ON MEMORY
+        data = await s3_manager.get_file(file)
+        uuid = file.split("/")[-1].split(".")[0]
+        print(uuid)
+        
+        result = await asyncio.to_thread(
+            player.play_file,
+            uuid,
+            data
+        )
+        
+        chunk_size = settings.AUDIO_SAMPLE_RATE * 10 # 10 seconds chunks
+
+        def wav_header_float32(sample_rate, num_samples):
+            import struct
+
+            num_channels = 1
+            bits_per_sample = 32
+            audio_format = 3  # IEEE float
+            block_align = num_channels * bits_per_sample // 8
+            byte_rate = sample_rate * block_align
+            data_size = num_samples * block_align
+            chunk_size = 36 + data_size
+
+            return struct.pack(
+                "<4sI4s4sIHHIIHH4sI",
+                b"RIFF",
+                chunk_size,
+                b"WAVE",
+                b"fmt ",
+                16,
+                audio_format,
+                num_channels,
+                sample_rate,
+                byte_rate,
+                block_align,
+                bits_per_sample,
+                b"data",
+                data_size,
+            )
+
+        def stream_memmap_wav(memmap_audio, sample_rate=settings.AUDIO_SAMPLE_RATE):
+            """Stream a float32 memmap as WAV (int16) in chunks."""
+            import wave
+            import io
+            import numpy as np
+
+            chunk_size = settings.AUDIO_SAMPLE_RATE * 10  # 10 seconds chunks
+
+            # First, convert the entire audio to int16 to know total size
+            # But we don't want to load everything into memory, so we'll create a proper header
+            # that specifies the correct data size
+
+            # Create a temporary buffer for the header with correct data size
+            header_buffer = io.BytesIO()
+            total_samples = len(memmap_audio)
+
+            # Yield the complete header first
+            yield wav_header_float32(sample_rate, total_samples)
+
+            # Now stream the audio data in chunks
+            for i in range(0, len(memmap_audio), chunk_size):
+                chunk = memmap_audio[i:i + chunk_size]
+                # Convert float32 [-1,1] to int16
+                chunk_bytes = (chunk).astype(np.float32).tobytes()
+                yield chunk_bytes
+
+        return StreamingResponse(
+            stream_memmap_wav(result.audio, settings.AUDIO_SAMPLE_RATE),
+            media_type="audio/wav",
+        )
+        
     except Exception as e:
         logger.error(f"Failed to play file {file}: {e}", exec_info=True)
         raise

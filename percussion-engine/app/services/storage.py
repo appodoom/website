@@ -117,7 +117,7 @@ class S3Manager:
         client = await self._get_client()
         
         response = await client.get_object(
-        Bucket=self.bucket_name,
+        Bucket=settings.S3_BUCKET,
         Key=file
         )
 

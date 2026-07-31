@@ -1,7 +1,7 @@
 const { Sequelize, DataTypes } = require("sequelize");
 
 const sequelize = new Sequelize(
-  "derbakegen",
+  process.env.POSTGRES_DB,
   process.env.POSTGRES_USER,
   process.env.POSTGRES_PASSWORD,
   {
@@ -250,7 +250,7 @@ User.hasMany(Rating, {
     await Rating.sync({ alter: false });
     await Sound.sync({ alter: false });
     await Tag.sync({ alter: false });
-    await Counter.sync({ alter: true, force: true });
+    await Counter.sync({ alter: false });
     console.log("Tables synced successfully.");
   } catch (err) {
     console.error("Error connecting or syncing:", err);

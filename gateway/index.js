@@ -59,9 +59,9 @@ const generateApi = new Proxy(
   "api/generate",
   "/api/generate/**",
   process.env.GENERATE_PORT,
-  "percussion-engine",
+  process.env.GENERATE_HOST,
 );
-const webApi = new Proxy("web", "/web/**", process.env.WEB_PORT, "web");
+const webApi = new Proxy("web", "/web/**", process.env.WEB_PORT, process.env.WEB_HOST);
 
 const proxiesToTest = [generateApi, webApi];
 const proxiesRequestHandlers = new Map();
@@ -150,10 +150,9 @@ async function periodicTest(deltaSeconds) {
     res.redirect("/web/404/");
   });
 
-  const GATEWAY_PORT = process.env.GATEWAY_PORT || 8080;
-  app.listen(GATEWAY_PORT, () => {
+  app.listen(process.env.GATEWAY_PORT, process.env.GATEWAY_HOST, () => {
     console.log(
-      `[GATEWAY LISTENING] Gateway is listening on port ${GATEWAY_PORT}`,
+      `[GATEWAY LISTENING] Gateway is listening on port ${process.env.GATEWAY_PORT}`,
     );
   });
 

@@ -520,15 +520,6 @@
   .generator-header {
     flex-direction: column;
   }
-
-  .skeleton-layout {
-    flex-direction: column;
-  }
-
-  .skeleton-sounds-panel {
-    width: 100%;
-    flex: none;
-  }
 }
 
 @media (max-width: 700px) {
@@ -550,12 +541,6 @@
   .setting-row input {
     width: 100%;
   }
-
-  #circle {
-    width: 300px;
-    height: 300px;
-  }
-
   #go_back {
     position: static;
     margin: 0 12px 12px;
@@ -563,5 +548,440 @@
 
   .username {
     max-width: 110px;
+  }
+}
+
+/* =========================================
+   PAGE 2 - MARKOV SKELETON BUILDER
+   ========================================= */
+
+.markov-builder-view {
+  min-width: 0;
+}
+
+.panel-section-title {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.panel-help-text {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.markov-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(290px, 0.75fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.markov-graph-panel,
+.markov-inspector-panel,
+.skeleton-editor-panel,
+.skeleton-sounds-panel {
+  min-width: 0;
+}
+
+.markov-panel-header,
+.inspector-heading,
+.transition-section-header,
+.editor-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.markov-panel-header {
+  margin-bottom: 12px;
+}
+
+.markov-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+#markov-graph {
+  width: 100%;
+  height: 430px;
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius);
+  background-color: #fafafa;
+  background-image: radial-gradient(var(--border) 0.7px, transparent 0.7px);
+  background-size: 16px 16px;
+  box-shadow:
+    var(--shadow-inner-soft),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+}
+
+.graph-footnote {
+  margin-top: 9px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.markov-inspector-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.inspector-heading {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.inspector-heading h3,
+.editor-panel-heading h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 17px;
+  text-shadow: 0 1px 0 #fff;
+}
+
+.btn-small {
+  padding: 4px 8px;
+  min-height: 26px;
+  font-size: 11px;
+}
+
+.btn-danger-soft {
+  color: #7b2f2f;
+  border-color: #c9a7a7;
+  background: linear-gradient(#ffffff, #f3e8e8);
+}
+
+.btn-danger-soft:hover:not(:disabled) {
+  background: linear-gradient(#ffffff, #ead7d7);
+}
+
+.btn-danger-soft:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.skeleton-property-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.skeleton-property-row > label {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.number-with-unit,
+.transition-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.number-with-unit input {
+  width: 92px;
+  text-align: center;
+}
+
+.number-with-unit span,
+.transition-input-wrap span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.transition-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.transition-section-header {
+  align-items: center;
+}
+
+.transition-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 290px;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.transition-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(#ffffff, var(--gray-1));
+  box-shadow: var(--shadow-inner-light);
+}
+
+.transition-target {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.transition-target strong {
+  color: var(--text);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transition-target span {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.transition-input-wrap input {
+  width: 72px;
+  text-align: right;
+}
+
+.transition-total {
+  align-self: flex-end;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--gray-1);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.transition-total.valid {
+  color: #2d6339;
+  border-color: #a8c8ad;
+  background: #f1f8f2;
+}
+
+.transition-total.invalid {
+  color: #8b3a3a;
+  border-color: #d0aaaa;
+  background: #fbf1f1;
+}
+
+.skeleton-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 18px;
+  align-items: start;
+}
+
+.editor-panel-heading {
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.circle-shell {
+  display: flex;
+  justify-content: center;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(var(--gray-1), #ffffff);
+  box-shadow: var(--shadow-inner-light);
+}
+
+#circle {
+  display: block;
+  width: min(420px, 100%);
+  height: auto;
+  aspect-ratio: 1;
+  border: 1px solid var(--border-dark);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-outer);
+  cursor: crosshair;
+}
+
+.circle-help-text {
+  margin-top: 9px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.skeleton-sounds-panel {
+  width: 220px;
+}
+
+#sound-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sound-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(#ffffff, #f1f1f1);
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 13px;
+  text-align: left;
+  box-shadow: var(--shadow-inner-light);
+}
+
+.sound-btn:hover {
+  background: linear-gradient(#ffffff, #e8e8e8);
+}
+
+.sound-btn.active {
+  color: #fff;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+  border-color: var(--accent-border);
+  background: linear-gradient(var(--accent-light), var(--accent-dark));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+.color-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  flex-shrink: 0;
+}
+
+.current-selection {
+  margin-top: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+#currentSound {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.editor-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.markov-view-actions {
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+@media (max-width: 1080px) {
+  .markov-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .transition-list {
+    max-height: 230px;
+  }
+
+  .skeleton-layout {
+    grid-template-columns: minmax(0, 1fr) 200px;
+  }
+
+  .skeleton-sounds-panel {
+    width: 200px;
+  }
+}
+
+@media (max-width: 760px) {
+  .markov-panel-header,
+  .inspector-heading,
+  .transition-section-header,
+  .editor-panel-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .markov-toolbar {
+    justify-content: flex-start;
+  }
+
+  #markov-graph {
+    height: 360px;
+  }
+
+  .skeleton-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .skeleton-sounds-panel {
+    width: 100%;
+  }
+
+  #sound-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .checkbox-row {
+    white-space: normal;
+  }
+
+  .markov-view-actions {
+    justify-content: stretch;
+  }
+
+  .markov-view-actions .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  #markov-graph {
+    height: 320px;
+  }
+
+  #sound-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .transition-row {
+    grid-template-columns: 1fr;
+  }
+
+  .transition-input-wrap {
+    justify-content: flex-end;
   }
 }

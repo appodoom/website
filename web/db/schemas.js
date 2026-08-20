@@ -133,7 +133,7 @@ const Sound = sequelize.define(
       onDelete: "SET NULL",
     },
     settings: {
-      type: DataTypes.JSON,
+      type: DataTypes.JSONB,
       allowNull: false,
       defaultValue: {},
     },
@@ -173,35 +173,6 @@ const Tag = sequelize.define(
   {
     timestamps: true,
     tableName: "tags",
-    freezeTableName: true,
-    paranoid: true,
-  },
-);
-
-const Counter = sequelize.define(
-  "Counter",
-  {
-    id: {
-      type: DataTypes.STRING,
-      primaryKey: true,
-      allowNull: false,
-    },
-    category: {
-      type: DataTypes.STRING,
-      defaultValue: "other",
-    },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    count: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-    },
-  },
-  {
-    timestamps: false,
-    tableName: "counters",
     freezeTableName: true,
     paranoid: true,
   },
@@ -250,11 +221,10 @@ User.hasMany(Rating, {
     await Rating.sync({ alter: false });
     await Sound.sync({ alter: false });
     await Tag.sync({ alter: false });
-    await Counter.sync({ alter: false });
     console.log("Tables synced successfully.");
   } catch (err) {
     console.error("Error connecting or syncing:", err);
   }
 })();
 
-module.exports = { Question, Tag, User, Sound, Rating, Counter, sequelize };
+module.exports = { Question, Tag, User, Sound, Rating, sequelize };

@@ -78,7 +78,7 @@ class DerboukaGenerator:
             choices.extend([2, 3])
         return choices
 
-    def get_tempos(self, number_of_beats: int, initial_tempo: float, allowed_tempo_deviation: float) -> list[float]:
+    def get_tempos(self, number_of_beats: int, initial_tempo: float, allowed_tempo_deviation: float):
         tempos = []
         current_tempo = initial_tempo
         i = 0
@@ -126,7 +126,7 @@ class DerboukaGenerator:
         return (start_of_window, end_of_window)
 
 
-    def get_audio_metadata(self, hit_type: str) -> Optional[npt.NDArray]:
+    def get_audio_metadata(self, hit_type: str) -> Tuple | None:
         """
         Get audio for a hit type with error handling.
         """
@@ -142,7 +142,7 @@ class DerboukaGenerator:
         except Exception as e:
             logger.error(f"Mismatched size for {hit_type}:{sample_number}, got length = {length}")
 
-    def get_exact_length(self, skeleton: list[tuple[float, str]], num_cycles: int, tempos: list[float], shift_proba: float, sr:int=48000) -> tuple[int, list[tuple[int, str, int]], list[tuple[int, int]], list[str]]:
+    def get_exact_length(self, skeletons_chosen: list[int], num_of_beats_in_audio: int, skeletons:List, tempos: list[float], shift_proba: float, sr:int=48000) -> Tuple:
         # we simulate the entire process here
         # we return:
         # length
@@ -151,8 +151,8 @@ class DerboukaGenerator:
         # token list
         current_tempo = tempos[0]
         beat_length_in_samples = int((60/current_tempo) * sr)
-        skeleton_length = len(skeleton)
-        num_of_beats_in_audio = num_cycles * sum(x[0] for x in skeleton)
+        current_skeleton_index = skeletons_chosen[0]
+        current_skeleton = skeletons[current_skeleton_index]
         # output initialization
         total_length_in_samples = 0
         final_list = []
@@ -160,27 +160,39 @@ class DerboukaGenerator:
         tokens = []
 
         expected_hit_timestamp = 0
-        curr_beat = i = 0
+        curr_beat = 0
         tempo_index = 0
-
+        skeleton_chosen_index = 0
+        previous_cycle_length = 0
+        previous_hit_beat = 0
+        hit_index_in_cycle = 0
         while curr_beat < num_of_beats_in_audio:
-            beat_duration = skeleton[i % skeleton_length][0]
-            curr_beat += beat_duration
+            # i guess this is the delay of the next hit
+            # it is equal to: 
+            # if it is the first hit in skeleton: last cycle length - last hit beat + current beat
+            # else it is : current hit beat - previous hit beat
+            delay_in_beats = current_skeleton["hits"][hit_index_in_cycle]["beat"] - previous_hit_beat
+            if hit_index_in_cycle == 0:
+                delay_in_beats += previous_cycle_length
+            
+                
+            curr_beat += delay_in_beats
 
             if int(curr_beat) > tempo_index and int(curr_beat) < len(tempos):
                 tempo_index = int(curr_beat)
                 new_tempo = tempos[tempo_index]
-                tempo_diff = new_tempo - current_tempo
                 current_tempo = new_tempo
                 beat_length_in_samples = int(60 / current_tempo * sr)
 
-            tokens.append(f"DELAY_{beat_duration}")
-            curr_hit = skeleton[i%skeleton_length][1]
+            tokens.append(f"DELAY_{delay_in_beats}")
+            curr_hit = current_skeleton["hits"][hit_index_in_cycle]["hit"]
 
-            _, sample_num, hit_length = self.get_audio_metadata(curr_hit)
+            _, sample_num, hit_length = self.get_audio_metadata(curr_hit) or (None,None,None)
+            if (sample_num is None or hit_length is None): 
+                return None, None, None, None
             tokens.append(f"HIT_{curr_hit}")
 
-            expected_hit_timestamp += int(beat_duration * beat_length_in_samples)
+            expected_hit_timestamp += int(delay_in_beats * beat_length_in_samples)
 
             start_of_window, end_of_window = self.get_window_by_beat(
                 expected_hit_timestamp, beat_length_in_samples
@@ -198,14 +210,30 @@ class DerboukaGenerator:
             final_list.append((adjusted_hit_timestamp,total_length_in_samples,curr_hit, sample_num))
 
             skeleton_hits_intervals.append((adjusted_hit_timestamp, total_length_in_samples))
-            i+=1
+                
+            previous_hit_beat = current_skeleton["hits"][hit_index_in_cycle]["beat"]
+            
+            hit_index_in_cycle += 1
+            
+            if hit_index_in_cycle >= len(current_skeleton["hits"]):
+                previous_cycle_length = current_skeleton["length"]
+                skeleton_chosen_index += 1
+                
+                if skeleton_chosen_index >= len(skeletons_chosen):
+                    break
+                
+                current_skeleton_index = skeletons_chosen[skeleton_chosen_index]
+                current_skeleton = skeletons[current_skeleton_index]
+                
+                hit_index_in_cycle = 0
 
         return total_length_in_samples, final_list, skeleton_hits_intervals, " ".join(tokens)
 
-    def skeleton_generator(self, uuid:str, amplitude: float, skeleton: list[tuple[float, str]], num_cycles: int, tempos: list[float], shift_proba: float, sr:int=48000) -> tuple[npt.NDArray,int,list[tuple[int, int]], list[str]]:
+    def skeleton_generator(self, uuid:str, amplitude: float, skeletons_chosen: list[int], skeletons:List, num_of_beats_in_audio: int, tempos: list[float], shift_proba: float, sr:int=48000) -> tuple[npt.NDArray,int,list[tuple[int, int]], list[str]]:
         total_length_in_samples, final_list, skeleton_hits_intervals, tokens = self.get_exact_length(
-                skeleton=skeleton,
-                num_cycles = num_cycles,
+                skeletons_chosen=skeletons_chosen,
+                skeletons=skeletons,
+                num_of_beats_in_audio=num_of_beats_in_audio,
                 tempos = tempos,
                 shift_proba = shift_proba,
                 sr = sr
@@ -386,6 +414,31 @@ class DerboukaGenerator:
             out.append(current_process)
 
         return out
+    
+    def chose_skeletons(self,
+                        skeletons: List[Dict],
+                        skeleton_matrix:List,
+                        num_cycles: int):
+        if num_cycles < 1:
+            return 0
+        number_of_skeletons = len(skeletons)
+        current_skeleton_index = random.randrange(number_of_skeletons)
+        cycles_chosen = 1
+        total_number_of_beats = skeletons[current_skeleton_index]["length"]
+        skeletons_chosen = [current_skeleton_index]
+        while cycles_chosen < num_cycles:
+            # chose next skeleton
+            p = skeleton_matrix[current_skeleton_index] # this is a list of probabilities adding to 1, each p[i] is the probability that skeleton i comes next
+            current_skeleton_index = random.choices(
+                range(number_of_skeletons),
+                weights=p,
+                k=1
+            )[0]
+            skeletons_chosen = skeletons_chosen + [current_skeleton_index]
+            total_number_of_beats += skeletons[current_skeleton_index]["length"]
+            cycles_chosen += 1
+        return total_number_of_beats, skeletons_chosen
+            
 
     def merge_skeleton_with_variations(
                                         self,
@@ -393,7 +446,8 @@ class DerboukaGenerator:
                                         maxsubd: int,
                                         probabilities_dict: dict[str, list],
                                         bpm: float,
-                                        skeleton: list[tuple[float, str]],
+                                        skeletons: List[Dict],
+                                        skeleton_matrix: List,
                                         num_cycles: int,
                                         subdiv_proba: list[float],
                                         amplitudes: list[float],
@@ -404,7 +458,7 @@ class DerboukaGenerator:
                                         sr:int = 48000 
                                     ) -> npt.NDArray:
         # calculating the total number of beats in the audio
-        num_of_beats = num_cycles * sum(float(x[0]) for x in skeleton)
+        num_of_beats, skeletons_chosen = self.chose_skeletons(skeletons, skeleton_matrix, num_cycles)
 
         # get the list of tempos for every beat
         tempos, tempo_tokens = self.get_tempos(
@@ -427,8 +481,9 @@ class DerboukaGenerator:
             uuid=uuid,
             shift_proba=shift_proba,
             amplitude=amplitudes[-1], # always play at highest amplitude
-            skeleton=skeleton,
-            num_cycles=num_cycles,
+            skeletons_chosen=skeletons_chosen,
+            skeletons=skeletons,
+            num_of_beats_in_audio=num_of_beats,
             sr=sr,
             tempos=tempos,
         )
@@ -447,8 +502,8 @@ class DerboukaGenerator:
     
     def generate(self, uuid: str, num_cycles: int, cycle_length: float, 
                 bpm: float, maxsubd: int, shift_proba: float, 
-                allowed_tempo_deviation: float, skeleton: List[Tuple[float, str]], 
-                matrix: List, amplitude_variation: float) -> GenerationResult:
+                allowed_tempo_deviation: float, skeletons: List[Dict],
+                matrix: List, skeleton_matrix: List, amplitude_variation: float) -> GenerationResult:
         """
         Main generation method with comprehensive error handling and statistics.
         """
@@ -482,7 +537,8 @@ class DerboukaGenerator:
                     maxsubd=maxsubd,
                     bpm=bpm,
                     probabilities_dict=probabilities_dict,
-                    skeleton=skeleton,
+                    skeletons=skeletons,
+                    skeleton_matrix=skeleton_matrix,
                     num_cycles=num_cycles,
                     subdiv_proba=subdiv_proba,
                     cycle_length=cycle_length,

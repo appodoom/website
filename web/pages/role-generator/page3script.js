@@ -31,7 +31,8 @@ export async function page3script() {
     std: localStorage.getItem("std") || 100,
     tempo: localStorage.getItem("tempo"),
     tempoVariation: localStorage.getItem("tempoVariation") || 0,
-    skeleton: localStorage.getItem("skeleton"),
+    skeletons: localStorage.getItem("skeletons"),
+    skeleton_matrix: localStorage.getItem("skeletonMatrix"),
     amplitudeVariation: localStorage.getItem("amplitudeVariation") || 50,
   };
 

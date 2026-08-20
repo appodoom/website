@@ -29,7 +29,6 @@ const {
   User,
   Sound,
   sequelize,
-  Counter,
 } = require("./db/schemas.js");
 const {
   log,
@@ -293,29 +292,222 @@ app.put("/web/api/questions/", adminRoleRequired, async (req, res) => {
   }
 });
 
-app.get("/web/analytics/", adminRoleRequired, async (req, res) => {
+app.post("/web/analytics/", adminRoleRequired, async (req, res) => {
   try {
-    const counters = await Counter.findAll({
-      attributes: ["category", "name", "count"],
-      order: [
-        ["category", "ASC"],
-        ["name", "ASC"],
-      ],
-    });
+    const { conditions = [] } = req.body;
 
-    const grouped = {};
-
-    for (const counter of counters) {
-      const category = counter.category || "other";
-
-      if (!grouped[category]) {
-        grouped[category] = {};
-      }
-
-      grouped[category][counter.name] = counter.count;
+    if (!Array.isArray(conditions)) {
+      return res.status(400).json({
+        error: "Conditions must be an array.",
+      });
     }
 
-    res.status(200).json(grouped);
+    /*
+     * Only fields that the frontend is allowed to query.
+     *
+     * This is important because we do NOT want the client
+     * sending arbitrary JSON paths / SQL operators.
+     */
+    const allowedFields = new Set([
+      "bpm",
+      "num_cycles",
+      "maxsubd",
+      "num_hits",
+      "cycle_length",
+      "skeleton",
+      "shift_proba",
+      "generation_time",
+      "amplitudeVariation",
+      "allowed_tempo_deviation",
+    ]);
+
+    const allowedOperators = new Set(["=", "!=", ">", ">=", "<", "<="]);
+
+    /*
+     * Validate conditions.
+     */
+    for (const condition of conditions) {
+      if (!condition || typeof condition !== "object") {
+        return res.status(400).json({
+          error: "Invalid condition.",
+        });
+      }
+
+      const { field, operator, value } = condition;
+
+      if (!allowedFields.has(field)) {
+        return res.status(400).json({
+          error: `Invalid field: ${field}`,
+        });
+      }
+
+      if (!allowedOperators.has(operator)) {
+        return res.status(400).json({
+          error: `Invalid operator: ${operator}`,
+        });
+      }
+
+      if (value === undefined || value === null || value === "") {
+        return res.status(400).json({
+          error: `Value is required for ${field}.`,
+        });
+      }
+    }
+
+    /*
+     * Build the PostgreSQL WHERE clause.
+     *
+     * settings->>'field' extracts the JSON value as text.
+     *
+     * Numeric fields are cast to double precision.
+     */
+    const numericFields = new Set([
+      "bpm",
+      "num_cycles",
+      "maxsubd",
+      "num_hits",
+      "cycle_length",
+      "shift_proba",
+      "generation_time",
+      "amplitudeVariation",
+      "allowed_tempo_deviation",
+    ]);
+
+    const replacements = {};
+
+    const whereParts = conditions.map((condition, index) => {
+      const { field, operator, value } = condition;
+
+      const parameterName = `value${index}`;
+
+      replacements[parameterName] = value;
+
+      /*
+       * Skeleton is currently treated as a string.
+       *
+       * Later we can make skeleton querying more sophisticated.
+       */
+      if (field === "skeleton") {
+        return `(settings->>'skeleton') ${operator} :${parameterName}`;
+      }
+
+      /*
+       * Numeric settings.
+       */
+      if (numericFields.has(field)) {
+        return `
+          NULLIF(settings->>'${field}', '')::double precision
+          ${operator}
+          CAST(:${parameterName} AS double precision)
+        `;
+      }
+
+      return `(settings->>'${field}') ${operator} :${parameterName}`;
+    });
+
+    /*
+     * If there are no conditions, there is deliberately
+     * NO WHERE clause.
+     *
+     * Therefore:
+     *
+     * conditions: []
+     *
+     * means:
+     *
+     * return everything.
+     */
+    const whereClause =
+      whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
+
+    /*
+     * Calculate duration from the settings.
+     *
+     * For now this assumes:
+     *
+     * duration = number_of_cycles * cycle_length * 60 / bpm
+     *
+     * based on the structure of your settings.
+     *
+     * If your actual audio duration calculation is different,
+     * this is the one place we need to change.
+     */
+    const query = `
+      SELECT
+        id,
+        settings,
+        (
+          COALESCE(
+            (
+              (settings->>'num_cycles')::double precision
+              *
+              (settings->>'cycle_length')::double precision
+              *
+              60.0
+              /
+              NULLIF((settings->>'bpm')::double precision, 0)
+            ),
+            0
+          )
+        ) AS duration_seconds
+      FROM sounds
+      ${whereClause}
+      ORDER BY id ASC
+    `;
+
+    const [results] = await sequelize.query(query, {
+      replacements,
+    });
+
+    /*
+     * Convert seconds into:
+     *
+     * 2h 3m 1s
+     */
+    function formatDuration(seconds) {
+      seconds = Math.round(Number(seconds) || 0);
+
+      const hours = Math.floor(seconds / 3600);
+
+      seconds %= 3600;
+
+      const minutes = Math.floor(seconds / 60);
+
+      seconds %= 60;
+
+      const parts = [];
+
+      if (hours > 0) {
+        parts.push(`${hours}h`);
+      }
+
+      if (minutes > 0) {
+        parts.push(`${minutes}m`);
+      }
+
+      if (seconds > 0 || parts.length === 0) {
+        parts.push(`${seconds}s`);
+      }
+
+      return parts.join(" ");
+    }
+
+    const files = results.map((sound) => ({
+      file_id: sound.id,
+      duration: formatDuration(sound.duration_seconds),
+      settings: sound.settings,
+    }));
+
+    const totalDurationSeconds = results.reduce(
+      (total, sound) => total + (Number(sound.duration_seconds) || 0),
+      0,
+    );
+
+    res.status(200).json({
+      "number of files": files.length,
+      duration: formatDuration(totalDurationSeconds),
+      files,
+    });
   } catch (e) {
     console.error("Analytics error:", e);
 

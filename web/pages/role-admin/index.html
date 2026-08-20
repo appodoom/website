@@ -155,7 +155,54 @@
           </p>
         </div>
 
-        <div class="analytics" id="analyticsContainer"></div>
+        <div class="analytics" id="analyticsContainer">
+          <div class="analytics-query">
+            <span class="analytics-text"> How many files contain </span>
+
+            <div
+              class="analytics-condition-list"
+              id="analyticsConditions"
+            ></div>
+
+            <button
+              type="button"
+              class="analytics-add-condition"
+              id="analyticsAddCondition"
+            >
+              + Add condition
+            </button>
+
+            <button type="button" class="analytics-run" id="analyticsRun">
+              Run
+            </button>
+          </div>
+
+          <div class="analytics-results" id="analyticsResults" hidden>
+            <div class="analytics-summary">
+              <div class="analytics-summary-item">
+                <span class="analytics-summary-label"> Files </span>
+
+                <span class="analytics-summary-value" id="analyticsFileCount">
+                  0
+                </span>
+              </div>
+
+              <div class="analytics-summary-item">
+                <span class="analytics-summary-label"> Total duration </span>
+
+                <span class="analytics-summary-value" id="analyticsDuration">
+                  0s
+                </span>
+              </div>
+            </div>
+
+            <div class="analytics-files">
+              <div class="analytics-files-header">Matching files</div>
+
+              <div class="analytics-file-list" id="analyticsFileList"></div>
+            </div>
+          </div>
+        </div>
       </section>
     </template>
 

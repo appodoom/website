@@ -201,17 +201,19 @@ async def generate(request: Request):
         amplitude_variation = params["amplitudeVariation"] / 100.0
         
         # Parse skeleton and matrix
-        skeleton = data.get("skeleton")
+        skeletons = data.get("skeletons")
         matrix = data.get("matrix")
+        skeleton_matrix = data.get("skeleton_matrix")
         
-        if not skeleton or not matrix:
-            raise ValidationError("skeleton and matrix are required")
+        if not skeletons or not matrix or not skeleton_matrix:
+            raise ValidationError("Missing required parameters: skeletons, matrix, skeleton_matrix")
         
-        if isinstance(skeleton, str):
-            skeleton = json.loads(skeleton)
+        if isinstance(skeletons, str):
+            skeletons = json.loads(skeletons)
         if isinstance(matrix, str):
             matrix = json.loads(matrix)
-        
+        if isinstance(skeleton_matrix, str):
+            skeleton_matrix = json.loads(skeleton_matrix)
         # Generate unique ID
         audio_id = str(uuid.uuid4())
         
@@ -227,8 +229,9 @@ async def generate(request: Request):
             params["maxSubd"],
             shift_proba,
             params["tempoVariation"],
-            skeleton,
+            skeletons,
             matrix,
+            skeleton_matrix,
             amplitude_variation
         )
         
@@ -243,7 +246,8 @@ async def generate(request: Request):
             "maxsubd": params["maxSubd"],
             "shift_proba": shift_proba,
             "allowed_tempo_deviation": params["tempoVariation"],
-            "skeleton": skeleton,
+            "skeletons": skeletons,
+            "skeleton_matrix": skeleton_matrix,
             "matrix": matrix,
             "amplitudeVariation": amplitude_variation,
             "generation_time": result.generation_time,

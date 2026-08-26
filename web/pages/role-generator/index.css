@@ -140,7 +140,7 @@
 }
 
 /* =========================================
-   PAGE 1 - MATRIX
+   PROBABILITY MATRIX EDITOR
    ========================================= */
 
 .matrix-panel {
@@ -155,12 +155,12 @@
   box-shadow: var(--shadow-outer);
 }
 
-#matrix {
+#matrix-editor {
   display: grid;
   background: var(--gray-3);
 }
 
-#matrix > div {
+#matrix-editor > div {
   background: #fff;
   display: flex;
   align-items: center;
@@ -171,23 +171,27 @@
   font-size: 12px;
 }
 
-#matrix > div.col-label {
-  background: linear-gradient(var(--gray-1), var(--gray-3));
-  font-weight: bold;
-  text-shadow: 0 1px 0 #fff;
-  border-bottom: 1px solid var(--border-dark);
+#matrix-editor > input {
+  min-width: 0;
+  min-height: 32px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
-#matrix > div.row-label {
+#matrix-editor > div.col-label,
+#matrix-editor > div.row-label {
   background: linear-gradient(var(--gray-1), var(--gray-3));
   font-weight: bold;
+  text-shadow: 0 1px 0 #fff;
+}
+
+#matrix-editor > div.row-label {
   justify-content: flex-start;
   padding-left: 8px;
-  text-shadow: 0 1px 0 #fff;
   border-right: 1px solid var(--border-dark);
 }
 
-.step_2_input {
+.probability-matrix-input {
   width: 100%;
   height: 100%;
   text-align: center;
@@ -199,7 +203,7 @@
   font-size: 12px;
 }
 
-.step_2_input:focus {
+.probability-matrix-input:focus {
   background: #fff8f3;
 }
 
@@ -642,6 +646,23 @@
   border-bottom: 1px solid var(--border);
 }
 
+.selected-skeleton-heading {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.selected-skeleton-heading strong {
+  margin-right: auto;
+  color: var(--text);
+  font-size: 17px;
+  text-shadow: 0 1px 0 #fff;
+}
+
 .inspector-heading h3,
 .editor-panel-heading h3 {
   margin: 0;
@@ -983,5 +1004,107 @@
 
   .transition-input-wrap {
     justify-content: flex-end;
+  }
+}
+
+/* =========================================
+   PROBABILITY MATRIX MODAL
+   ========================================= */
+
+.matrix-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.matrix-modal.open {
+  display: block;
+}
+
+.matrix-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.matrix-modal-content {
+  position: relative;
+  z-index: 1;
+  width: min(960px, calc(100% - 28px));
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  margin: 20px auto;
+  padding: 18px;
+  background: var(--gray-0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+}
+
+.matrix-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+
+.matrix-modal-header h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.matrix-modal-header p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.matrix-modal-close {
+  min-width: 34px;
+  padding: 4px 9px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.matrix-modal-panel {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+}
+
+.matrix-validation {
+  display: none;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  color: #8a2417;
+  background: #fff0ed;
+  border: 1px solid #e1a095;
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+
+.matrix-validation.visible {
+  display: block;
+}
+
+.matrix-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+@media (max-width: 600px) {
+  .matrix-modal-content {
+    width: calc(100% - 16px);
+    max-height: calc(100vh - 16px);
+    margin: 8px auto;
+    padding: 12px;
+  }
+
+  .matrix-modal-header {
+    gap: 8px;
   }
 }

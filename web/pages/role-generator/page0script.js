@@ -86,36 +86,6 @@ export function page0script() {
 
   document.getElementById("next-btn1").addEventListener("click", () => {
     if (checkInputs(inputs)) {
-      localStorage.setItem("currPage", 1);
-      document.getElementById("dummy").click();
-    }
-  });
-
-  document.getElementById("next-btn2").addEventListener("click", () => {
-    if (checkInputs(inputs)) {
-      function getMatrix() {
-        const maxSubd = Number(localStorage.getItem("maxSubd"));
-        const matrixInputs = [];
-        let rowIndex = -1;
-
-        for (let i = 0; i < maxSubd * 5; i++) {
-          if (i % maxSubd === 0) {
-            matrixInputs.push([]);
-            rowIndex++;
-          }
-          matrixInputs[rowIndex].push(0);
-        }
-
-        return matrixInputs;
-      }
-
-      const matrix = localStorage.getItem("matrix");
-      const freshMatrix = getMatrix();
-
-      if (!matrix || JSON.parse(matrix)[0].length !== freshMatrix[0].length) {
-        localStorage.setItem("matrix", JSON.stringify(freshMatrix));
-      }
-
       localStorage.setItem("currPage", 2);
       document.getElementById("dummy").click();
     }

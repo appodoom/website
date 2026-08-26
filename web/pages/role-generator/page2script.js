@@ -24,6 +24,10 @@ export function page2script() {
     return;
   }
 
+  // The former flow stored one shared matrix under this key. It is no longer
+  // read; remove it so returning users cannot accidentally carry it forward.
+  localStorage.removeItem("matrix");
+
   /* ------------------------------------------------------------------ */
   /* Constants                                                          */
   /* ------------------------------------------------------------------ */
@@ -62,6 +66,9 @@ export function page2script() {
     Pa2: "/web/generate/sounds/pa2.wav",
   };
 
+  const probabilityRowLabels = ["Percentages", "Doom", "Open Tak", "Open Tik", "Pa2"];
+  const maxSubd = Math.max(1, Number(localStorage.getItem("maxSubd")) || 4);
+
   /* ------------------------------------------------------------------ */
   /* DOM                                                                */
   /* ------------------------------------------------------------------ */
@@ -78,7 +85,12 @@ export function page2script() {
 
   const lengthInput = document.getElementById("selectedSkeletonLength");
   const deleteButton = document.getElementById("delete-skeleton-btn");
+  const editMatrixButton = document.getElementById("edit-matrix-btn");
   const playButton = document.getElementById("playSkeleton");
+  const matrixModal = document.getElementById("matrix-modal");
+  const matrixModalTitle = document.getElementById("matrix-modal-title");
+  const matrixEditor = document.getElementById("matrix-editor");
+  const matrixValidation = document.getElementById("matrix-validation");
 
   const canvas = document.getElementById("circle");
   const ctx = canvas.getContext("2d");
@@ -101,6 +113,12 @@ export function page2script() {
   function makeIdentityMatrix(size) {
     return Array.from({ length: size }, (_, row) =>
       Array.from({ length: size }, (_, col) => (row === col ? 1 : 0)),
+    );
+  }
+
+  function makeProbabilityMatrix() {
+    return Array.from({ length: probabilityRowLabels.length }, () =>
+      Array(maxSubd).fill(0),
     );
   }
 
@@ -168,6 +186,48 @@ export function page2script() {
     }
   }
 
+  function loadProbabilityMatrices(size) {
+    try {
+      const stored = JSON.parse(localStorage.getItem("matrices"));
+      const shapeValid =
+        Array.isArray(stored) &&
+        stored.length === size &&
+        stored.every(
+          (matrix) =>
+            Array.isArray(matrix) &&
+            matrix.length === probabilityRowLabels.length &&
+            matrix.every(
+              (row) =>
+                Array.isArray(row) &&
+                row.length === maxSubd &&
+                row.every(
+                  (value) =>
+                    Number.isFinite(Number(value)) &&
+                    Number(value) >= 0 &&
+                    Number(value) <= 100,
+                ),
+            ),
+        );
+
+      if (!shapeValid) {
+        return Array.from({ length: size }, () => makeProbabilityMatrix());
+      }
+
+      const normalized = stored.map((matrix) =>
+        matrix.map((row) => row.map((value) => Number(value))),
+      );
+
+      if (normalized.some((matrix) => validateProbabilityMatrix(matrix))) {
+        return Array.from({ length: size }, () => makeProbabilityMatrix());
+      }
+
+      return normalized;
+    } catch (error) {
+      console.error("Could not restore probability matrices:", error);
+      return Array.from({ length: size }, () => makeProbabilityMatrix());
+    }
+  }
+
   function loadGraphPositions() {
     try {
       const positions = JSON.parse(localStorage.getItem("markovPositions"));
@@ -197,6 +257,7 @@ export function page2script() {
 
   let skeletons = loadSkeletons();
   let skeletonMatrix = loadMatrix(skeletons.length);
+  let matrices = loadProbabilityMatrices(skeletons.length);
 
   let selectedSkeletonIndex = Math.min(
     Math.max(Number(localStorage.getItem("selectedSkeletonIndex")) || 0, 0),
@@ -226,6 +287,7 @@ export function page2script() {
     localStorage.setItem("skeletons", JSON.stringify(skeletons));
 
     localStorage.setItem("skeletonMatrix", JSON.stringify(skeletonMatrix));
+    localStorage.setItem("matrices", JSON.stringify(matrices));
 
     localStorage.setItem(
       "selectedSkeletonIndex",
@@ -283,6 +345,7 @@ export function page2script() {
     const oldSize = skeletons.length;
 
     skeletons.push(makeSkeleton());
+    matrices.push(makeProbabilityMatrix());
 
     for (const row of skeletonMatrix) {
       row.push(0);
@@ -316,6 +379,7 @@ export function page2script() {
     const deletedIndex = selectedSkeletonIndex;
 
     skeletons.splice(deletedIndex, 1);
+    matrices.splice(deletedIndex, 1);
 
     skeletonMatrix.splice(deletedIndex, 1);
 
@@ -631,6 +695,7 @@ export function page2script() {
     selectedSkeletonTitle.textContent = title;
 
     editorSkeletonLabel.textContent = title;
+    matrixModalTitle.textContent = `${title} probability matrix`;
 
     lengthInput.value = skeleton.length;
 
@@ -694,6 +759,110 @@ export function page2script() {
     );
 
     updateTransitionTotal();
+  }
+
+  function readProbabilityMatrixFromEditor() {
+    const inputs = matrixEditor.querySelectorAll(".probability-matrix-input");
+    const matrix = Array.from({ length: probabilityRowLabels.length }, () => []);
+
+    inputs.forEach((input, index) => {
+      const row = Math.floor(index / maxSubd);
+      const rawValue = input.value.trim();
+      matrix[row].push(rawValue === "" ? undefined : Number(rawValue));
+    });
+
+    matrix.forEach((row) => {
+      let previous = 0;
+      row.forEach((value, index) => {
+        if (value === undefined) {
+          row[index] = previous;
+        } else {
+          previous = value;
+        }
+      });
+    });
+
+    return matrix;
+  }
+
+  function validateProbabilityMatrix(matrix) {
+    for (let rowIndex = 0; rowIndex < matrix.length; rowIndex += 1) {
+      for (let column = 0; column < maxSubd; column += 1) {
+        const value = matrix[rowIndex][column];
+        if (!Number.isFinite(value) || value < 0 || value > 100) {
+          return `Values must be between 0 and 100 (row ${rowIndex + 1}, column ${column + 1}).`;
+        }
+      }
+    }
+
+    for (let column = 0; column < maxSubd; column += 1) {
+      const total = matrix
+        .slice(1)
+        .reduce((sum, row) => sum + row[column], 0);
+      if (total > 100.0001) {
+        return `Hit probabilities in column ${column + 1} cannot exceed 100%.`;
+      }
+    }
+
+    return "";
+  }
+
+  function renderProbabilityMatrix() {
+    const matrix = matrices[selectedSkeletonIndex];
+    matrixEditor.innerHTML = "";
+    matrixEditor.style.gridTemplateColumns = `150px repeat(${maxSubd}, 52px)`;
+    matrixEditor.style.gridTemplateRows = `36px repeat(${probabilityRowLabels.length}, 34px)`;
+
+    matrixEditor.appendChild(document.createElement("div"));
+    for (let column = maxSubd; column > 0; column -= 1) {
+      const label = document.createElement("div");
+      label.className = "col-label";
+      label.textContent = column;
+      matrixEditor.appendChild(label);
+    }
+
+    probabilityRowLabels.forEach((rowLabel, rowIndex) => {
+      const label = document.createElement("div");
+      label.className = "row-label";
+      label.textContent = rowLabel;
+      matrixEditor.appendChild(label);
+
+      for (let column = 0; column < maxSubd; column += 1) {
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "0";
+        input.max = "100";
+        input.step = "0.1";
+        input.className = "probability-matrix-input";
+        input.value = matrix[rowIndex][column];
+        input.addEventListener("input", () => {
+          const candidate = readProbabilityMatrixFromEditor();
+          const error = validateProbabilityMatrix(candidate);
+          matrixValidation.textContent = error;
+          matrixValidation.classList.toggle("visible", Boolean(error));
+          if (!error) {
+            matrices[selectedSkeletonIndex] = candidate;
+            persistState();
+          }
+        });
+        matrixEditor.appendChild(input);
+      }
+    });
+  }
+
+  function openProbabilityMatrix() {
+    renderProbabilityMatrix();
+    matrixValidation.textContent = "";
+    matrixValidation.classList.remove("visible");
+    matrixModal.classList.add("open");
+    matrixModal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeProbabilityMatrix() {
+    matrixModal.classList.remove("open");
+    matrixModal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
   }
 
   function updateTransitionTotal() {
@@ -1129,6 +1298,28 @@ export function page2script() {
       }
     }
 
+    if (
+      matrices.length !== skeletons.length ||
+      matrices.some(
+        (matrix) =>
+          !Array.isArray(matrix) ||
+          matrix.length !== probabilityRowLabels.length ||
+          matrix.some((row) => !Array.isArray(row) || row.length !== maxSubd),
+      )
+    ) {
+      showToast("Each skeleton needs a complete probability matrix.");
+      return false;
+    }
+
+    for (let skeletonIndex = 0; skeletonIndex < matrices.length; skeletonIndex += 1) {
+      const error = validateProbabilityMatrix(matrices[skeletonIndex]);
+      if (error) {
+        showToast(`Skeleton ${skeletonIndex + 1}: ${error}`);
+        selectSkeleton(skeletonIndex);
+        return false;
+      }
+    }
+
     return true;
   }
 
@@ -1141,6 +1332,15 @@ export function page2script() {
     .addEventListener("click", addSkeleton);
 
   deleteButton.addEventListener("click", deleteSelectedSkeleton);
+  editMatrixButton.addEventListener("click", openProbabilityMatrix);
+  document.querySelectorAll("[data-close-matrix-modal]").forEach((element) => {
+    element.addEventListener("click", closeProbabilityMatrix);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && matrixModal.classList.contains("open")) {
+      closeProbabilityMatrix();
+    }
+  });
 
   document
     .getElementById("reset-layout-btn")

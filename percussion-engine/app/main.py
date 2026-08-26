@@ -191,7 +191,6 @@ async def generate(request: Request):
             "tempoVariation": float(data.get("tempoVariation", 0)),
             "amplitudeVariation": float(data.get("amplitudeVariation", 50)),
             "numOfCycles": int(data.get("numOfCycles", 1)),
-            "cycleLength": float(data.get("cycleLength", 4)),
             "tempo": float(data.get("tempo", 120)),
             "maxSubd": int(data.get("maxSubd", 4))
         }
@@ -200,20 +199,23 @@ async def generate(request: Request):
         shift_proba = abs(100.0 - params["std"]) / 100.0
         amplitude_variation = params["amplitudeVariation"] / 100.0
         
-        # Parse skeleton and matrix
+        # Parse skeletons and their per-skeleton probability matrices.
         skeletons = data.get("skeletons")
-        matrix = data.get("matrix")
+        matrices = data.get("matrices")
         skeleton_matrix = data.get("skeleton_matrix")
         
-        if not skeletons or not matrix or not skeleton_matrix:
-            raise ValidationError("Missing required parameters: skeletons, matrix, skeleton_matrix")
+        if not skeletons or not matrices or not skeleton_matrix:
+            raise ValidationError("Missing required parameters: skeletons, matrices, skeleton_matrix")
         
         if isinstance(skeletons, str):
             skeletons = json.loads(skeletons)
-        if isinstance(matrix, str):
-            matrix = json.loads(matrix)
+        if isinstance(matrices, str):
+            matrices = json.loads(matrices)
         if isinstance(skeleton_matrix, str):
             skeleton_matrix = json.loads(skeleton_matrix)
+
+        if not isinstance(skeletons, list) or not isinstance(matrices, list):
+            raise ValidationError("skeletons and matrices must be JSON arrays")
         # Generate unique ID
         audio_id = str(uuid.uuid4())
         
@@ -224,13 +226,12 @@ async def generate(request: Request):
             generator.generate,
             audio_id,
             params["numOfCycles"],
-            params["cycleLength"],
             params["tempo"],
             params["maxSubd"],
             shift_proba,
             params["tempoVariation"],
             skeletons,
-            matrix,
+            matrices,
             skeleton_matrix,
             amplitude_variation
         )
@@ -241,14 +242,13 @@ async def generate(request: Request):
         metadata = {
             "uuid": audio_id,
             "num_cycles": params["numOfCycles"],
-            "cycle_length": params["cycleLength"],
             "bpm": params["tempo"],
             "maxsubd": params["maxSubd"],
             "shift_proba": shift_proba,
             "allowed_tempo_deviation": params["tempoVariation"],
             "skeletons": skeletons,
             "skeleton_matrix": skeleton_matrix,
-            "matrix": matrix,
+            "matrices": matrices,
             "amplitudeVariation": amplitude_variation,
             "generation_time": result.generation_time,
             "num_hits": result.num_hits

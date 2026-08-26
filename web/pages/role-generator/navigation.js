@@ -33,6 +33,13 @@ document.getElementById("dummy").addEventListener("click", () => {
 });
 
 async function renderPage(pageId) {
+  // Page 1 was the removed shared-matrix screen. Resume those sessions in
+  // the skeleton builder instead of trying to render a missing template.
+  if (Number(pageId) === 1) {
+    pageId = 2;
+    localStorage.setItem("currPage", 2);
+  }
+
   const container = document.getElementById("main_content");
   container.innerHTML = "";
 

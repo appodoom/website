@@ -38,16 +38,15 @@
           <div>
             <h1 class="generator-title">Generation Workspace</h1>
             <p class="generator-subtitle">
-              Configure the output, adjust advanced probabilities, build a
-              skeleton, and generate a new percussion sample.
+              Configure the output, build rhythmic skeletons, tune their
+              probabilities, and generate a new percussion sample.
             </p>
           </div>
 
           <div class="generator-steps" id="generatorSteps">
             <div class="step-pill" data-step="0">1. Settings</div>
-            <div class="step-pill" data-step="1">2. Advanced</div>
-            <div class="step-pill" data-step="2">3. Skeleton</div>
-            <div class="step-pill" data-step="3">4. Result</div>
+            <div class="step-pill" data-step="2">2. Skeletons</div>
+            <div class="step-pill" data-step="3">3. Result</div>
           </div>
         </div>
 
@@ -151,35 +150,7 @@
 
         <div class="view-actions">
           <button class="btn btn-primary" id="next-btn1" type="button">
-            Go to advanced
-          </button>
-          <button class="btn" id="next-btn2" type="button">
-            Skip advanced
-          </button>
-        </div>
-      </section>
-    </template>
-
-    <!-- PAGE 1 -->
-    <template id="page-1">
-      <section class="generator-view">
-        <div class="view-header">
-          <h2 class="view-title">Variation Percentages</h2>
-          <p class="view-subtitle">
-            Fill any values you want to control. Blank cells will inherit the
-            previous value.
-          </p>
-        </div>
-
-        <div class="panel matrix-panel">
-          <div class="matrix_container">
-            <div id="matrix"></div>
-          </div>
-        </div>
-
-        <div class="view-actions">
-          <button class="btn btn-primary" id="next-btn" type="button">
-            Next
+            Continue to skeletons
           </button>
         </div>
       </section>
@@ -193,7 +164,8 @@
 
           <p class="view-subtitle">
             Build multiple rhythmic skeletons and define the transition
-            probabilities between them.
+            probabilities between them. Select a skeleton to edit its own
+            subdivision and hit-probability matrix.
           </p>
         </div>
 
@@ -245,6 +217,10 @@
                 type="button"
               >
                 Delete
+              </button>
+
+              <button id="edit-matrix-btn" class="btn" type="button">
+                Edit probability matrix
               </button>
             </div>
 
@@ -365,8 +341,50 @@
             Generate
           </button>
         </div>
+
+        <div id="matrix-modal" class="matrix-modal" aria-hidden="true">
+          <div class="matrix-modal-overlay" data-close-matrix-modal></div>
+          <section
+            class="matrix-modal-content"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="matrix-modal-title"
+          >
+            <div class="matrix-modal-header">
+              <div>
+                <h2 id="matrix-modal-title">Probability Matrix</h2>
+                <p>
+                  Set subdivision weights and hit probabilities for this
+                  skeleton. Blank cells inherit the value to their left.
+                </p>
+              </div>
+              <button
+                class="btn matrix-modal-close"
+                type="button"
+                data-close-matrix-modal
+                aria-label="Close probability matrix"
+              >
+                ×
+              </button>
+            </div>
+
+            <div id="matrix-validation" class="matrix-validation" role="alert"></div>
+            <div class="matrix-modal-panel matrix-panel">
+              <div class="matrix_container">
+                <div id="matrix-editor"></div>
+              </div>
+            </div>
+
+            <div class="matrix-modal-actions">
+              <button class="btn" type="button" data-close-matrix-modal>
+                Done
+              </button>
+            </div>
+          </section>
+        </div>
       </section>
     </template>
+
     <!-- PAGE 3 -->
     <template id="page-3">
       <section class="generator-view">

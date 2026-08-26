@@ -23,16 +23,26 @@ function showToast(message, duration = 3200) {
 }
 
 export async function page3script() {
+  function readJsonState(key) {
+    const value = localStorage.getItem(key);
+    if (!value) return null;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+
   const json = {
     cycleLength: localStorage.getItem("cycleLength"),
-    matrix: localStorage.getItem("matrix"),
     maxSubd: localStorage.getItem("maxSubd"),
     numOfCycles: localStorage.getItem("numOfCycles"),
     std: localStorage.getItem("std") || 100,
     tempo: localStorage.getItem("tempo"),
     tempoVariation: localStorage.getItem("tempoVariation") || 0,
-    skeletons: localStorage.getItem("skeletons"),
-    skeleton_matrix: localStorage.getItem("skeletonMatrix"),
+    skeletons: readJsonState("skeletons"),
+    skeleton_matrix: readJsonState("skeletonMatrix"),
+    matrices: readJsonState("matrices"),
     amplitudeVariation: localStorage.getItem("amplitudeVariation") || 50,
   };
 

@@ -45,6 +45,7 @@ class DerboukaGenerator:
     """
     
     SUPPORTED_NOTES = ["D", "OTA", "OTI", "PA2", "S"]
+    PROBABILITY_HIT_NOTES = ["D", "OTA", "OTI", "PA2"]
     
     def __init__(self):
         self.generation_stats = {
@@ -111,6 +112,56 @@ class DerboukaGenerator:
             choice = random.uniform(0, weight)
             output.append(choice)
         return output
+
+    def validate_probability_matrices(
+        self, matrices: List, skeleton_count: int, maxsubd: int
+    ) -> None:
+        """Validate the per-skeleton subdivision probability matrices.
+
+        Each matrix has five rows: subdivision weights followed by the four
+        explicit hit rows. Silence is derived as the remaining probability in
+        each subdivision column, so explicit hit probabilities may not exceed
+        100% in a column.
+        """
+        if not isinstance(matrices, list) or len(matrices) != skeleton_count:
+            raise ValidationError(
+                "Probability matrices must contain one matrix per skeleton"
+            )
+        if not isinstance(maxsubd, int) or maxsubd < 1:
+            raise ValidationError("maxSubd must be a positive integer")
+
+        for skeleton_index, matrix in enumerate(matrices):
+            if not isinstance(matrix, list) or len(matrix) != 5:
+                raise ValidationError(
+                    f"Probability matrix for skeleton {skeleton_index + 1} must have 5 rows"
+                )
+            for row_index, row in enumerate(matrix):
+                if not isinstance(row, list) or len(row) != maxsubd:
+                    raise ValidationError(
+                        f"Probability matrix for skeleton {skeleton_index + 1} "
+                        f"row {row_index + 1} must have {maxsubd} columns"
+                    )
+                for value in row:
+                    if isinstance(value, bool):
+                        valid = False
+                    else:
+                        try:
+                            valid = math.isfinite(float(value)) and 0 <= float(value) <= 100
+                        except (TypeError, ValueError):
+                            valid = False
+                    if not valid:
+                        raise ValidationError(
+                            f"Probability matrix for skeleton {skeleton_index + 1} "
+                            "must contain values between 0 and 100"
+                        )
+
+            for column in range(maxsubd):
+                hit_total = sum(float(matrix[row][column]) for row in range(1, 5))
+                if hit_total > 100.0001:
+                    raise ValidationError(
+                        f"Hit probabilities in skeleton {skeleton_index + 1}, "
+                        f"column {column + 1} exceed 100%"
+                    )
 
     def get_deviated_sample(
     self, start_of_window: int, end_of_window: int, expected_hit_timestamp: int, shift_proba: float
@@ -274,144 +325,173 @@ class DerboukaGenerator:
                     y_chunk[newstart:newend] = amplitude*self.get_audio_data(sym,sample,newend-newstart)
                 else:
                     continue
-        
+
         y[window[0]:window[1]] = y_chunk
         return y, skeleton_hits_intervals, tokens
 
-    def subdivisions_generator(self, y: npt.NDArray, maxsubd: int, 
-                          added_hits_intervals: List[Tuple[int, int]], 
-                          hit_probabilities: List[Dict[str, float]], 
-                          subdiv_proba: List[float],
-                          amplitudes: List[float], 
-                          amplitudes_proba_list: List[float],
-                          tempos: List[float], sr: int = 48000) -> Tuple[npt.NDArray, List[Tuple[int, int]], str]:
-        subdiv_array = []
-        tokens = []
-        
-        # Initialize tempo tracking
-        current_tempo = tempos[0]
-        
-        for i in range(len(subdiv_proba)):
-            subdiv_array.append(i)
-            
-        if sum(subdiv_proba) == 0:
-            return y, [], ""
-            
-        maxsubdi = random.choices(population=subdiv_array, weights=subdiv_proba, k=1)[0]
+    def subdivisions_generator(
+        self,
+        y: npt.NDArray,
+        maxsubd: int,
+        added_hits_intervals: List[Tuple[int, int]],
+        hit_probabilities: List[List[Dict[str, float]]],
+        skeletons_chosen: List[int],
+        skeletons: List[Dict],
+        subdiv_proba: List[List[float]],
+        amplitudes: List[float],
+        amplitudes_proba_list: List[float],
+        tempos: List[float],
+        sr: int = 48000,
+    ) -> Tuple[npt.NDArray, List[Tuple[int, int]], str]:
+        """Add probabilistic subdivision hits using the active skeleton matrix.
+
+        ``skeletons_chosen`` contains skeleton indices in Markov-chain order.
+        A matrix is selected per beat using the skeleton whose cumulative cycle
+        span contains that beat's start. Fractional cycle lengths therefore
+        switch matrices at the first subsequent beat boundary.
+        """
+        if not y.size or not tempos or not skeletons_chosen:
+            return y, list(added_hits_intervals), ""
+
+        if len(subdiv_proba) != len(skeletons) or len(hit_probabilities) != len(skeletons):
+            raise ValidationError("Probability matrices must contain one entry per skeleton")
+
+        cycle_spans = []
+        cycle_start = 0.0
+        for skeleton_index in skeletons_chosen:
+            if skeleton_index < 0 or skeleton_index >= len(skeletons):
+                raise ValidationError(f"Invalid selected skeleton index: {skeleton_index}")
+            cycle_length = float(skeletons[skeleton_index]["length"])
+            if cycle_length <= 0:
+                raise ValidationError("Skeleton lengths must be positive")
+            cycle_spans.append((cycle_start, cycle_start + cycle_length, skeleton_index))
+            cycle_start += cycle_length
+
+        def skeleton_for_beat(beat: int) -> int:
+            beat_start = float(beat)
+            for start, end, skeleton_index in cycle_spans:
+                if start <= beat_start < end:
+                    return skeleton_index
+            return cycle_spans[-1][2]
+
+        subdiv_array = list(range(maxsubd))
         added_hits_intervals = sorted(added_hits_intervals, key=lambda x: x[0])
-
-        curr_sample = 0
-        tempo_index = 0
-        beat_index = 0
-
-        chosen_div = maxsubd - maxsubdi
-        tokens.append(f"SUBD_{chosen_div}")
-        
-        # Calculate beat length for current tempo
-        beat_length_in_samples = int(60 * sr / current_tempo)
-        maxsubd_length_arr = [int(beat_length_in_samples / chosen_div) for _ in range(chosen_div - 1)]
-        maxsubd_length_arr.append(beat_length_in_samples - sum(maxsubd_length_arr))
-        
-        hits = list(hit_probabilities[maxsubdi].keys())
-        weights = list(hit_probabilities[maxsubdi].values())
         new_added_hits_intervals = []
-        
-        j = 0
-        index_of_curr_subd_in_beat = 0
+        tokens = []
+
+        current_tempo = tempos[0]
+        beat_length_in_samples = int(60 * sr / current_tempo)
+        beat_index = 0
+        curr_sample = 0
         sample_of_last_beat = 0
-        
+        index_of_curr_subd_in_beat = 0
+
+        def configure_beat(active_skeleton_index: int):
+            weights = subdiv_proba[active_skeleton_index]
+            if len(weights) != maxsubd:
+                raise ValidationError(
+                    f"Subdivision matrix for skeleton {active_skeleton_index + 1} has invalid dimensions"
+                )
+
+            if sum(weights) <= 0:
+                chosen_div = 1
+                hits = ["S"]
+                hit_weights = [100.0]
+            else:
+                maxsubdi = random.choices(population=subdiv_array, weights=weights, k=1)[0]
+                chosen_div = maxsubd - maxsubdi
+                column = hit_probabilities[active_skeleton_index][maxsubdi]
+                hits = list(column.keys())
+                hit_weights = list(column.values())
+
+            tokens.append(f"SUBD_{chosen_div}")
+            lengths = [int(beat_length_in_samples / chosen_div) for _ in range(chosen_div - 1)]
+            lengths.append(beat_length_in_samples - sum(lengths))
+            return chosen_div, lengths, hits, hit_weights
+
+        active_skeleton_index = skeleton_for_beat(beat_index)
+        chosen_div, subdivision_lengths, hits, weights = configure_beat(active_skeleton_index)
+
         while curr_sample < len(y):
-            # Check if we need to update tempo (new beat)
             if curr_sample >= sample_of_last_beat + beat_length_in_samples:
                 beat_index += 1
                 index_of_curr_subd_in_beat = 0
-                sample_of_last_beat = curr_sample
-                
-                # Update tempo if available
-                if beat_index < len(tempos):
-                    new_tempo = tempos[beat_index]
-                    if new_tempo != current_tempo:
-                        current_tempo = new_tempo
-                    
-                    beat_length_in_samples = int(60 * sr / current_tempo)
-                
-                # Get new random subdivision for the new beat
-                maxsubdi = random.choices(population=subdiv_array, weights=subdiv_proba, k=1)[0]
-                chosen_div = maxsubd - maxsubdi
-                tokens.append(f"SUBD_{chosen_div}")
-                maxsubd_length_arr = [int(beat_length_in_samples / chosen_div) for _ in range(chosen_div - 1)]
-                maxsubd_length_arr.append(beat_length_in_samples - sum(maxsubd_length_arr))
+                sample_of_last_beat += beat_length_in_samples
 
-                hits = list(hit_probabilities[maxsubdi].keys())
-                weights = list(hit_probabilities[maxsubdi].values())
-            
+                if beat_index < len(tempos):
+                    current_tempo = tempos[beat_index]
+                    beat_length_in_samples = int(60 * sr / current_tempo)
+
+                active_skeleton_index = skeleton_for_beat(beat_index)
+                chosen_div, subdivision_lengths, hits, weights = configure_beat(active_skeleton_index)
+
             remaining = len(y) - curr_sample
             random_proba_list = self.get_random_proba_list(weights)
             chosen_hit = random.choices(hits, weights=random_proba_list, k=1)[0]
             chosen_amplitude = random.choices(
                 population=amplitudes, weights=amplitudes_proba_list, k=1
             )[0]
-            
+            step_length = subdivision_lengths[index_of_curr_subd_in_beat]
+
             if chosen_hit == "S":
-                tokens.append(f"HIT_{chosen_hit}")
+                tokens.append("HIT_S")
                 tokens.append(f"AMP_{chosen_amplitude}")
-                curr_sample += maxsubd_length_arr[index_of_curr_subd_in_beat]
+                curr_sample += step_length
             else:
                 hit_metadata = self.get_audio_metadata(chosen_hit)
+                if hit_metadata is None:
+                    raise AudioGenerationError(f"No sample metadata for {chosen_hit}")
                 hit_y_raw = self.get_audio_data(hit_metadata[0], hit_metadata[1], hit_metadata[2])
-                
                 add_len = min(hit_metadata[2], remaining)
-                
                 hit_y = self.apply_cross_fade(hit_y_raw)
-                
+
                 no_overlap = True
                 for start, end in added_hits_intervals:
                     if start <= curr_sample < end:
-                        curr_sample += maxsubd_length_arr[index_of_curr_subd_in_beat]
                         no_overlap = False
                         break
-                
-                if curr_sample < added_hits_intervals[0][0]:
+                if added_hits_intervals and curr_sample < added_hits_intervals[0][0]:
                     no_overlap = False
-                    curr_sample += maxsubd_length_arr[index_of_curr_subd_in_beat]
-                        
+
                 if no_overlap:
-                    y[curr_sample:curr_sample + add_len] += (
-                        chosen_amplitude * hit_y[:add_len]
-                    )
-                    new_added_hits_intervals.append(
-                        (curr_sample, curr_sample + add_len)
-                    )
-                    curr_sample += maxsubd_length_arr[index_of_curr_subd_in_beat]
+                    y[curr_sample:curr_sample + add_len] += chosen_amplitude * hit_y[:add_len]
+                    new_added_hits_intervals.append((curr_sample, curr_sample + add_len))
                     tokens.append(f"HIT_{chosen_hit}")
-                    tokens.append(f"AMP_{chosen_amplitude}")
                 else:
-                    tokens.append(f"HIT_S")
-                    tokens.append(f"AMP_{chosen_amplitude}")
+                    tokens.append("HIT_S")
+                tokens.append(f"AMP_{chosen_amplitude}")
+                curr_sample += step_length
 
             index_of_curr_subd_in_beat += 1
 
         new_added_hits_intervals.extend(added_hits_intervals)
         return y, new_added_hits_intervals, " ".join(tokens)
 
-    def get_subdivision_hit_probabilities(self, maxsubd: int, number_of_hits: int, hits_list: list[str], probabilities_dict: dict[str, list]) -> list[dict[str, float]]:
+    def get_subdivision_hit_probabilities(self, maxsubd: int, number_of_hits: int, hits_list: list[str], probabilities_dict: list[dict[str, list]]) -> list[list[dict[str, float]]]:
         out = []
 
-        for col_index in range(maxsubd):
-            current_process = {}
-            sum_of_probabilities = 0
-            for j in range(number_of_hits):
-                current_hit = hits_list[j]
-                current_process[current_hit] = probabilities_dict[current_hit][col_index]
-                sum_of_probabilities += probabilities_dict[current_hit][col_index]
-            if sum_of_probabilities > 100:
-                raise ValueError(
-                    f"Column {col_index} probabilities sum to {sum_of_probabilities} (>100). "
-                    "Reduce one or more values so that the sum ≤ 100."
-                )
-            # adding silence with other hits
-            current_process["S"] = 100 - sum_of_probabilities
-            out.append(current_process)
+        for prob_dict in probabilities_dict:
+            skeleton_out = []
+            for col_index in range(maxsubd):
+                current_process = {}
+                sum_of_probabilities = 0
+                for j in range(number_of_hits):
+                    current_hit = hits_list[j]
+                    if current_hit not in prob_dict or len(prob_dict[current_hit]) != maxsubd:
+                        raise ValidationError(
+                            f"Invalid probability row for {current_hit} in skeleton {len(out) + 1}"
+                        )
+                    current_process[current_hit] = prob_dict[current_hit][col_index]
+                    sum_of_probabilities += prob_dict[current_hit][col_index]
+                if sum_of_probabilities > 100:
+                    raise ValidationError(
+                        f"Column {col_index} probabilities sum to {sum_of_probabilities} (>100). "
+                        "Reduce one or more values so that the sum ≤ 100."
+                    )
+                # adding silence with other hits
+                current_process["S"] = 100 - sum_of_probabilities
+                skeleton_out.append(current_process)
+            out.append(skeleton_out)
 
         return out
     
@@ -444,15 +524,14 @@ class DerboukaGenerator:
                                         self,
                                         uuid:str,
                                         maxsubd: int,
-                                        probabilities_dict: dict[str, list],
+                                        probabilities_dict: list[dict[str, list]],
                                         bpm: float,
                                         skeletons: List[Dict],
                                         skeleton_matrix: List,
                                         num_cycles: int,
-                                        subdiv_proba: list[float],
+                                        subdiv_proba: list[list[float]],
                                         amplitudes: list[float],
                                         amplitudes_proba_list: list[float],
-                                        cycle_length: float,
                                         shift_proba: float,
                                         allowed_tempo_deviation: float,
                                         sr:int = 48000 
@@ -466,7 +545,8 @@ class DerboukaGenerator:
         )
 
         # getting the notes
-        hits_list = list(probabilities_dict.keys())
+        # Silence is derived from the four explicit hit rows below.
+        hits_list = ["D", "OTA", "OTI", "PA2"]
         number_of_hits = len(hits_list)
 
         subdivision_hit_probabilities = self.get_subdivision_hit_probabilities(
@@ -475,7 +555,6 @@ class DerboukaGenerator:
             hits_list=hits_list,
             probabilities_dict=probabilities_dict,
         )
-
 
         y, added_hits_intervals, skeleton_tokens = self.skeleton_generator(
             uuid=uuid,
@@ -492,6 +571,8 @@ class DerboukaGenerator:
             maxsubd=maxsubd,
             amplitudes=amplitudes,
             amplitudes_proba_list=amplitudes_proba_list,
+            skeletons_chosen=skeletons_chosen,
+            skeletons=skeletons,
             added_hits_intervals=added_hits_intervals,
             hit_probabilities=subdivision_hit_probabilities,
             subdiv_proba=subdiv_proba,
@@ -500,13 +581,16 @@ class DerboukaGenerator:
 
         return y, str(tempos[0]) + "\n" + tempo_tokens + "\n" + skeleton_tokens + "\n" + var_tokens
     
-    def generate(self, uuid: str, num_cycles: int, cycle_length: float, 
+    def generate(self, uuid: str, num_cycles: int,
                 bpm: float, maxsubd: int, shift_proba: float, 
                 allowed_tempo_deviation: float, skeletons: List[Dict],
-                matrix: List, skeleton_matrix: List, amplitude_variation: float) -> GenerationResult:
+                matrices: List, skeleton_matrix: List, amplitude_variation: float) -> GenerationResult:
         """
         Main generation method with comprehensive error handling and statistics.
         """
+        if not isinstance(skeletons, list) or not skeletons:
+            raise ValidationError("At least one skeleton is required")
+        self.validate_probability_matrices(matrices, len(skeletons), maxsubd)
         start_time = time.time()
         self.generation_stats["total_generations"].increment()
         
@@ -524,11 +608,13 @@ class DerboukaGenerator:
                                (1 - amplitude_variation) / 2]
             
             # Parse matrix
-            subdiv_proba = matrix[0]
-            matrix_data = matrix[1:]
+            subdiv_proba = [matrix[0] for matrix in matrices]
+            matrix_data = [matrix[1:] for matrix in matrices]
             
             # Create probability dict
-            probabilities_dict = dict(zip(self.SUPPORTED_NOTES, matrix_data))
+            probabilities_dict = [
+                dict(zip(self.PROBABILITY_HIT_NOTES, x)) for x in matrix_data
+            ]
             y, tokens = self.merge_skeleton_with_variations(
                     uuid=uuid,
                     amplitudes=amplitudes,
@@ -541,7 +627,6 @@ class DerboukaGenerator:
                     skeleton_matrix=skeleton_matrix,
                     num_cycles=num_cycles,
                     subdiv_proba=subdiv_proba,
-                    cycle_length=cycle_length,
                     allowed_tempo_deviation=allowed_tempo_deviation
                 )
             # Normalize to prevent clipping
@@ -561,6 +646,9 @@ class DerboukaGenerator:
                 num_hits=num_hits
             )
             
+        except ValidationError:
+            self.generation_stats["errors"].increment()
+            raise
         except Exception as e:
             self.generation_stats["errors"].increment()
             logger.error(f"Generation failed for {uuid}: {e}", exc_info=True)

@@ -13,7 +13,7 @@ CTX_SIZE = 0
 
 app = Flask(__name__)
 # TODO CHANGE ORIGIN FOR PROD
-CORS(app, resources={"*": {"origins": ["*.largepercussionmodel.com", "https://largepercussionmodel.com", "http://localhost:3000"]}})
+CORS(app, resources={"*": {"origins": "*"}})
 
 def cleanup_files(session_id):
     """Delete temporary files for a session"""

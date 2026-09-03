@@ -50,7 +50,7 @@ export function page1script(p) {
     },
   };
 
-  const MODEL_API_URL = "https://model.largepercussionmodel.com";
+  const MODEL_API_URL = "http://192.168.78.11:3002";
 
   let markers = [];
   let hoverBeat = null;

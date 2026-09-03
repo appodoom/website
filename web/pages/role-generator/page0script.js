@@ -22,7 +22,7 @@ function showToast(message, duration = 3200) {
   }, duration);
 }
 
-export function page0script() {
+export function page0script(pageId) {
   const inputs = document.querySelectorAll(".setting-row > input");
 
   inputs.forEach((input) => {
@@ -86,7 +86,7 @@ export function page0script() {
 
   document.getElementById("next-btn1").addEventListener("click", () => {
     if (checkInputs(inputs)) {
-      localStorage.setItem("currPage", 2);
+      pageId[0] = 1;
       document.getElementById("dummy").click();
     }
   });

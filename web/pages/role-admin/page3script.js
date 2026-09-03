@@ -9,14 +9,34 @@ const NUMERIC_OPERATORS = [
 
 const FIELD_DEFINITIONS = [
   { value: "bpm", label: "BPM", kind: "number", min: 0, exclusiveMin: true },
-  { value: "num_cycles", label: "Number of cycles", kind: "number", min: 1, integer: true },
-  { value: "maxsubd", label: "Maximum subdivision", kind: "number", min: 1, max: 16, integer: true },
-  { value: "num_hits", label: "Number of hits", kind: "number", min: 0, integer: true },
+  {
+    value: "num_cycles",
+    label: "Number of cycles",
+    kind: "number",
+    min: 1,
+    integer: true,
+  },
   { value: "skeletons", label: "Skeleton", kind: "skeleton" },
-  { value: "shift_proba", label: "Shift probability", kind: "number", min: 0, max: 1 },
-  { value: "generation_time", label: "Generation time", kind: "number", min: 0 },
-  { value: "amplitudeVariation", label: "Amplitude variation", kind: "number", min: 0, max: 1 },
-  { value: "allowed_tempo_deviation", label: "Allowed tempo deviation", kind: "number", min: 0 },
+  {
+    value: "shift_proba",
+    label: "Shift probability",
+    kind: "number",
+    min: 0,
+    max: 1,
+  },
+  {
+    value: "amplitudeVariation",
+    label: "Amplitude variation",
+    kind: "number",
+    min: 0,
+    max: 1,
+  },
+  {
+    value: "allowed_tempo_deviation",
+    label: "Allowed tempo deviation",
+    kind: "number",
+    min: 0,
+  },
 ];
 
 const SOUND_MAP = {
@@ -48,7 +68,9 @@ function showToast(message, duration = 3200) {
   requestAnimationFrame(() => toast.classList.add("show"));
   setTimeout(() => {
     toast.classList.remove("show");
-    toast.addEventListener("transitionend", () => toast.remove(), { once: true });
+    toast.addEventListener("transitionend", () => toast.remove(), {
+      once: true,
+    });
   }, duration);
 }
 
@@ -56,12 +78,19 @@ function cloneSkeleton(skeleton) {
   if (!skeleton) return null;
   return {
     length: Number(skeleton.length),
-    hits: skeleton.hits.map((hit) => ({ beat: Number(hit.beat), hit: hit.hit })),
+    hits: skeleton.hits.map((hit) => ({
+      beat: Number(hit.beat),
+      hit: hit.hit,
+    })),
   };
 }
 
 function validateSkeleton(skeleton) {
-  if (!skeleton || !Number.isFinite(Number(skeleton.length)) || Number(skeleton.length) <= 0) {
+  if (
+    !skeleton ||
+    !Number.isFinite(Number(skeleton.length)) ||
+    Number(skeleton.length) <= 0
+  ) {
     return "Skeleton length must be positive.";
   }
   if (!Array.isArray(skeleton.hits) || skeleton.hits.length === 0) {
@@ -103,16 +132,6 @@ export function page3script() {
     return FIELD_DEFINITIONS.find((field) => field.value === fieldValue);
   }
 
-  function operatorsFor(fieldValue) {
-    if (fieldValue === "skeletons") {
-      return [
-        { value: "=", label: "contains" },
-        { value: "!=", label: "does not contain" },
-      ];
-    }
-    return NUMERIC_OPERATORS;
-  }
-
   function createSelect(options, className) {
     const select = document.createElement("select");
     select.className = className;
@@ -145,7 +164,9 @@ export function page3script() {
       button.type = "button";
       button.className = "analytics-skeleton-button";
       button.textContent = formatSkeletonSummary(state.skeleton);
-      button.addEventListener("click", () => openSkeletonEditor(condition, state));
+      button.addEventListener("click", () =>
+        openSkeletonEditor(condition, state),
+      );
       slot.appendChild(button);
       return;
     }
@@ -168,8 +189,14 @@ export function page3script() {
     const state = { field: "bpm", operator: "=", value: "", skeleton: null };
     conditionStates.set(condition, state);
 
-    const field = createSelect(FIELD_DEFINITIONS, "analytics-select analytics-field");
-    const operator = createSelect(operatorsFor(state.field), "analytics-select analytics-operator");
+    const field = createSelect(
+      FIELD_DEFINITIONS,
+      "analytics-select analytics-field",
+    );
+    const operator = createSelect(
+      NUMERIC_OPERATORS,
+      "analytics-select analytics-operator",
+    );
     const valueSlot = document.createElement("div");
     valueSlot.className = "analytics-value-slot";
     const removeButton = document.createElement("button");
@@ -183,17 +210,6 @@ export function page3script() {
 
     field.addEventListener("change", () => {
       state.field = field.value;
-      const validOperators = operatorsFor(state.field);
-      if (!validOperators.some((option) => option.value === state.operator)) {
-        state.operator = validOperators[0].value;
-      }
-      operator.replaceChildren(...validOperators.map((option) => {
-        const element = document.createElement("option");
-        element.value = option.value;
-        element.textContent = option.label;
-        return element;
-      }));
-      operator.value = state.operator;
       updateValueEditor(condition, state);
       setConditionError(condition, "");
     });
@@ -213,19 +229,21 @@ export function page3script() {
   }
 
   function updateConditionLabels() {
-    conditionsContainer.querySelectorAll(".analytics-condition").forEach((condition, index) => {
-      let label = condition.querySelector(".analytics-condition-label");
-      if (index === 0) {
-        label?.remove();
-        return;
-      }
-      if (!label) {
-        label = document.createElement("span");
-        label.className = "analytics-condition-label";
-        condition.prepend(label);
-      }
-      label.textContent = "AND";
-    });
+    conditionsContainer
+      .querySelectorAll(".analytics-condition")
+      .forEach((condition, index) => {
+        let label = condition.querySelector(".analytics-condition-label");
+        if (index === 0) {
+          label?.remove();
+          return;
+        }
+        if (!label) {
+          label = document.createElement("span");
+          label.className = "analytics-condition-label";
+          condition.prepend(label);
+        }
+        label.textContent = "AND";
+      });
   }
 
   function addCondition() {
@@ -265,13 +283,29 @@ export function page3script() {
       </section>`;
 
     document.body.appendChild(root);
-    root.querySelectorAll("[data-skeleton-modal-cancel]").forEach((element) => element.addEventListener("click", closeSkeletonEditor));
-    root.querySelector("[data-skeleton-modal-save]").addEventListener("click", saveSkeletonEditor);
-    root.querySelector(".analytics-skeleton-length").addEventListener("change", handleSkeletonLengthChange);
-    root.querySelector(".analytics-skeleton-canvas").addEventListener("mousemove", handleSkeletonMouseMove);
-    root.querySelector(".analytics-skeleton-canvas").addEventListener("mouseleave", handleSkeletonMouseLeave);
-    root.querySelector(".analytics-skeleton-canvas").addEventListener("click", handleSkeletonCanvasClick);
-    root.querySelector(".analytics-skeleton-snap").addEventListener("change", drawSkeletonCircle);
+    root
+      .querySelectorAll("[data-skeleton-modal-cancel]")
+      .forEach((element) =>
+        element.addEventListener("click", closeSkeletonEditor),
+      );
+    root
+      .querySelector("[data-skeleton-modal-save]")
+      .addEventListener("click", saveSkeletonEditor);
+    root
+      .querySelector(".analytics-skeleton-length")
+      .addEventListener("change", handleSkeletonLengthChange);
+    root
+      .querySelector(".analytics-skeleton-canvas")
+      .addEventListener("mousemove", handleSkeletonMouseMove);
+    root
+      .querySelector(".analytics-skeleton-canvas")
+      .addEventListener("mouseleave", handleSkeletonMouseLeave);
+    root
+      .querySelector(".analytics-skeleton-canvas")
+      .addEventListener("click", handleSkeletonCanvasClick);
+    root
+      .querySelector(".analytics-skeleton-snap")
+      .addEventListener("change", drawSkeletonCircle);
     return root;
   }
 
@@ -291,12 +325,17 @@ export function page3script() {
   function modalBeatFromPoint(event) {
     const canvas = modalCanvas();
     const rect = canvas.getBoundingClientRect();
-    const x = (event.clientX - rect.left) * (canvas.width / rect.width) - canvas.width / 2;
-    const y = (event.clientY - rect.top) * (canvas.height / rect.height) - canvas.height / 2;
+    const x =
+      (event.clientX - rect.left) * (canvas.width / rect.width) -
+      canvas.width / 2;
+    const y =
+      (event.clientY - rect.top) * (canvas.height / rect.height) -
+      canvas.height / 2;
     let angle = Math.atan2(y, x) + Math.PI / 2;
     if (angle < 0) angle += 2 * Math.PI;
     let beat = ((2 * Math.PI - angle) / (2 * Math.PI)) * modalDraft().length;
-    if (modal.querySelector(".analytics-skeleton-snap input").checked) beat = Math.round(beat * 4) / 4;
+    if (modal.querySelector(".analytics-skeleton-snap input").checked)
+      beat = Math.round(beat * 4) / 4;
     if (beat >= modalDraft().length) beat = 0;
     return Number(beat.toFixed(4));
   }
@@ -325,7 +364,8 @@ export function page3script() {
     for (let index = 0; index < guideCount; index += 1) {
       const beat = index / 2;
       if (beat >= skeleton.length) break;
-      const angle = 2 * Math.PI - (beat / skeleton.length) * 2 * Math.PI - Math.PI / 2;
+      const angle =
+        2 * Math.PI - (beat / skeleton.length) * 2 * Math.PI - Math.PI / 2;
       const x = cx + radius * Math.cos(angle);
       const y = cy + radius * Math.sin(angle);
       ctx.beginPath();
@@ -336,10 +376,14 @@ export function page3script() {
     }
 
     skeleton.hits.forEach((hit) => {
-      const angle = 2 * Math.PI - (hit.beat / skeleton.length) * 2 * Math.PI - Math.PI / 2;
+      const angle =
+        2 * Math.PI - (hit.beat / skeleton.length) * 2 * Math.PI - Math.PI / 2;
       const x = cx + radius * Math.cos(angle);
       const y = cy + radius * Math.sin(angle);
-      const sound = Object.entries(SOUND_MAP).find(([, symbol]) => symbol === hit.hit)?.[0] || "Silence";
+      const sound =
+        Object.entries(SOUND_MAP).find(
+          ([, symbol]) => symbol === hit.hit,
+        )?.[0] || "Silence";
       ctx.beginPath();
       ctx.arc(x, y, 10, 0, 2 * Math.PI);
       ctx.fillStyle = SOUND_COLORS[sound];
@@ -350,7 +394,10 @@ export function page3script() {
     });
 
     if (modalContext.hoverBeat !== null) {
-      const angle = 2 * Math.PI - (modalContext.hoverBeat / skeleton.length) * 2 * Math.PI - Math.PI / 2;
+      const angle =
+        2 * Math.PI -
+        (modalContext.hoverBeat / skeleton.length) * 2 * Math.PI -
+        Math.PI / 2;
       const x = cx + radius * Math.cos(angle);
       const y = cy + radius * Math.sin(angle);
       ctx.beginPath();
@@ -373,7 +420,8 @@ export function page3script() {
       button.innerHTML = `<span class="color-indicator" style="background-color:${SOUND_COLORS[sound]}"></span>${sound}`;
       button.addEventListener("click", () => {
         modalContext.selectedSound = sound;
-        modal.querySelector(".analytics-skeleton-current-sound").textContent = sound;
+        modal.querySelector(".analytics-skeleton-current-sound").textContent =
+          sound;
         renderSkeletonSounds();
       });
       soundsContainer.appendChild(button);
@@ -389,10 +437,13 @@ export function page3script() {
       selectedSound: "Doom",
       hoverBeat: null,
     };
-    modal.querySelector(".analytics-skeleton-length").value = modalContext.draft.length;
+    modal.querySelector(".analytics-skeleton-length").value =
+      modalContext.draft.length;
     modal.querySelector(".analytics-skeleton-error").textContent = "";
-    modal.querySelector("#analytics-skeleton-title").textContent = state.skeleton ? "Edit skeleton" : "Build skeleton";
-    modal.querySelector(".analytics-skeleton-current-sound").textContent = "Doom";
+    modal.querySelector("#analytics-skeleton-title").textContent =
+      state.skeleton ? "Edit skeleton" : "Build skeleton";
+    modal.querySelector(".analytics-skeleton-current-sound").textContent =
+      "Doom";
     renderSkeletonSounds();
     drawSkeletonCircle();
     modal.classList.add("open");
@@ -425,9 +476,14 @@ export function page3script() {
     if (!modalContext) return;
     const previous = modalContext.draft.length;
     const length = Number(event.target.value);
-    if (!Number.isFinite(length) || length <= 0 || modalContext.draft.hits.some((hit) => hit.beat >= length)) {
+    if (
+      !Number.isFinite(length) ||
+      length <= 0 ||
+      modalContext.draft.hits.some((hit) => hit.beat >= length)
+    ) {
       event.target.value = previous;
-      modal.querySelector(".analytics-skeleton-error").textContent = "Length must be positive and cannot exclude an existing hit.";
+      modal.querySelector(".analytics-skeleton-error").textContent =
+        "Length must be positive and cannot exclude an existing hit.";
       return;
     }
     modalContext.draft.length = length;
@@ -475,38 +531,80 @@ export function page3script() {
     if (!value) return "A value is required.";
     const number = Number(value);
     if (!Number.isFinite(number)) return "Enter a finite numeric value.";
-    if (definition.integer && !Number.isInteger(number)) return "Enter a whole number.";
-    if (definition.exclusiveMin && number <= definition.min) return `Value must be greater than ${definition.min}.`;
-    if (!definition.exclusiveMin && definition.min !== undefined && number < definition.min) return `Value must be at least ${definition.min}.`;
-    if (definition.max !== undefined && number > definition.max) return `Value must be at most ${definition.max}.`;
+    if (definition.integer && !Number.isInteger(number))
+      return "Enter a whole number.";
+    if (definition.exclusiveMin && number <= definition.min)
+      return `Value must be greater than ${definition.min}.`;
+    if (
+      !definition.exclusiveMin &&
+      definition.min !== undefined &&
+      number < definition.min
+    )
+      return `Value must be at least ${definition.min}.`;
+    if (definition.max !== undefined && number > definition.max)
+      return `Value must be at most ${definition.max}.`;
     return "";
   }
 
   function validateCondition(condition) {
     const state = conditionStates.get(condition);
     const definition = fieldDefinition(state.field);
-    if (!definition) return "Choose a valid field.";
-    if (!operatorsFor(state.field).some((option) => option.value === state.operator)) return "That operator is not valid for this field.";
-    const error = definition.kind === "skeleton"
-      ? validateSkeleton(state.skeleton)
-      : validateNumericCondition(definition, state.value);
+
+    if (!definition) {
+      const error = "Choose a valid field.";
+      setConditionError(condition, error);
+      return error;
+    }
+
+    const operatorIsSafe = NUMERIC_OPERATORS.some(
+      (option) => option.value === state.operator,
+    );
+
+    if (!operatorIsSafe) {
+      const error = "That operator is not valid.";
+      setConditionError(condition, error);
+      return error;
+    }
+
+    if (
+      state.field === "skeletons" &&
+      state.operator !== "=" &&
+      state.operator !== "!="
+    ) {
+      const error = "Invalid skeleton query: use = or ≠.";
+      setConditionError(condition, error);
+      return error;
+    }
+
+    const error =
+      definition.kind === "skeleton"
+        ? validateSkeleton(state.skeleton)
+        : validateNumericCondition(definition, state.value);
+
     setConditionError(condition, error);
     return error;
   }
 
   function getConditions() {
-    return Array.from(conditionsContainer.querySelectorAll(".analytics-condition")).map((condition) => {
+    return Array.from(
+      conditionsContainer.querySelectorAll(".analytics-condition"),
+    ).map((condition) => {
       const state = conditionStates.get(condition);
       return {
         field: state.field,
         operator: state.operator,
-        value: state.field === "skeletons" ? cloneSkeleton(state.skeleton) : state.value.trim(),
+        value:
+          state.field === "skeletons"
+            ? cloneSkeleton(state.skeleton)
+            : state.value.trim(),
       };
     });
   }
 
   function validateAllConditions() {
-    const conditions = Array.from(conditionsContainer.querySelectorAll(".analytics-condition"));
+    const conditions = Array.from(
+      conditionsContainer.querySelectorAll(".analytics-condition"),
+    );
     let firstError = "";
     conditions.forEach((condition) => {
       const error = validateCondition(condition);
@@ -549,7 +647,10 @@ export function page3script() {
       settingName.textContent = key;
       const settingValue = document.createElement("span");
       settingValue.className = "analytics-setting-value";
-      settingValue.textContent = typeof value === "object" && value !== null ? JSON.stringify(value) : String(value);
+      settingValue.textContent =
+        typeof value === "object" && value !== null
+          ? JSON.stringify(value)
+          : String(value);
       setting.append(settingName, settingValue);
       settingsContainer.appendChild(setting);
     });
@@ -567,7 +668,9 @@ export function page3script() {
       empty.textContent = "No matching files.";
       fileList.appendChild(empty);
     } else {
-      data.files.forEach((file) => fileList.appendChild(createFileElement(file)));
+      data.files.forEach((file) =>
+        fileList.appendChild(createFileElement(file)),
+      );
     }
     resultsContainer.hidden = false;
   }
@@ -605,7 +708,8 @@ export function page3script() {
       console.error("Analytics error:", error);
       const errorElement = document.createElement("div");
       errorElement.className = "analytics-empty";
-      errorElement.textContent = error.message || "Something went wrong while fetching the data.";
+      errorElement.textContent =
+        error.message || "Something went wrong while fetching the data.";
       fileList.appendChild(errorElement);
       resultsContainer.hidden = false;
     } finally {

@@ -1,12 +1,10 @@
 # generator.py
 import numpy as np
 import numpy.typing as npt
-import soundfile as sf
 import math
 import logging
 import random
-import time
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict
 from dataclasses import dataclass
 from app.services.samples import sample_manager
 from app.core.exceptions import AudioGenerationError, ValidationError
@@ -19,9 +17,8 @@ logger = logging.getLogger(__name__)
 class GenerationResult:
     """Result of audio generation"""
     audio: npt.NDArray[np.float32]
-    tokens: str | None = None
-    generation_time: float | None = None
-    num_hits: int | None = None
+    tokens: str
+    generated_num_beats: float
 
 class ThreadSafeCounter:
     """Thread-safe counter for statistics"""
@@ -579,7 +576,7 @@ class DerboukaGenerator:
             tempos=tempos,
         )
 
-        return y, str(tempos[0]) + "\n" + tempo_tokens + "\n" + skeleton_tokens + "\n" + var_tokens
+        return y, str(tempos[0]) + "\n" + tempo_tokens + "\n" + skeleton_tokens + "\n" + var_tokens, num_of_beats
     
     def generate(self, uuid: str, num_cycles: int,
                 bpm: float, maxsubd: int, shift_proba: float, 
@@ -591,7 +588,6 @@ class DerboukaGenerator:
         if not isinstance(skeletons, list) or not skeletons:
             raise ValidationError("At least one skeleton is required")
         self.validate_probability_matrices(matrices, len(skeletons), maxsubd)
-        start_time = time.time()
         self.generation_stats["total_generations"].increment()
         
         try:
@@ -615,7 +611,7 @@ class DerboukaGenerator:
             probabilities_dict = [
                 dict(zip(self.PROBABILITY_HIT_NOTES, x)) for x in matrix_data
             ]
-            y, tokens = self.merge_skeleton_with_variations(
+            y, tokens, generated_num_beats = self.merge_skeleton_with_variations(
                     uuid=uuid,
                     amplitudes=amplitudes,
                     amplitudes_proba_list=amplitudes_proba,
@@ -629,21 +625,11 @@ class DerboukaGenerator:
                     subdiv_proba=subdiv_proba,
                     allowed_tempo_deviation=allowed_tempo_deviation
                 )
-            # Normalize to prevent clipping
-            # max_val = np.max(np.abs(y))
-            # if max_val > 1.0:
-            #     y = y / max_val * 0.95
-            
-            generation_time = time.time() - start_time
-            # Count hits (approximate)
-            num_hits = tokens.count("HIT_")
-            self.generation_stats["total_hits"].increment(num_hits)
-            
+                        
             return GenerationResult(
                 audio=y,
                 tokens=tokens,
-                generation_time=generation_time,
-                num_hits=num_hits
+                generated_num_beats=generated_num_beats
             )
             
         except ValidationError:

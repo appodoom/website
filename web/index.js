@@ -311,23 +311,29 @@ app.post("/web/analytics/", adminRoleRequired, async (req, res) => {
     const allowedFields = new Set([
       "bpm",
       "num_cycles",
-      "maxsubd",
-      "num_hits",
       "cycle_length",
-      "skeleton",
+      "skeletons",
       "shift_proba",
-      "generation_time",
       "amplitudeVariation",
       "allowed_tempo_deviation",
     ]);
 
     const allowedOperators = new Set(["=", "!=", ">", ">=", "<", "<="]);
+    const allowedSkeletonOperators = new Set(["=", "!="]);
+    const allowedSkeletonHits = new Set(["D", "OTA", "OTI", "PA2", "S"]);
+    const normalizedSkeletons = new Map();
 
     /*
      * Validate conditions.
      */
-    for (const condition of conditions) {
-      if (!condition || typeof condition !== "object") {
+    for (let index = 0; index < conditions.length; index += 1) {
+      const condition = conditions[index];
+
+      if (
+        !condition ||
+        typeof condition !== "object" ||
+        Array.isArray(condition)
+      ) {
         return res.status(400).json({
           error: "Invalid condition.",
         });
@@ -347,6 +353,105 @@ app.post("/web/analytics/", adminRoleRequired, async (req, res) => {
         });
       }
 
+      if (field === "skeletons") {
+        if (!allowedSkeletonOperators.has(operator)) {
+          return res.status(400).json({
+            error: "Invalid skeleton query: use = or !=.",
+          });
+        }
+
+        if (
+          value === null ||
+          typeof value !== "object" ||
+          Array.isArray(value)
+        ) {
+          return res.status(400).json({
+            error: "Skeleton value must be a single skeleton object.",
+          });
+        }
+
+        if (
+          value.length === undefined ||
+          value.length === null ||
+          value.length === "" ||
+          !Number.isFinite(Number(value.length)) ||
+          Number(value.length) <= 0
+        ) {
+          return res.status(400).json({
+            error: "Skeleton length must be a finite positive number.",
+          });
+        }
+
+        const length = Number(value.length);
+
+        if (!Array.isArray(value.hits) || value.hits.length === 0) {
+          return res.status(400).json({
+            error: "Skeleton must contain at least one hit.",
+          });
+        }
+
+        const seenBeats = new Set();
+        const normalizedHits = [];
+
+        for (const hit of value.hits) {
+          if (!hit || typeof hit !== "object" || Array.isArray(hit)) {
+            return res.status(400).json({
+              error: "Every skeleton hit must be an object.",
+            });
+          }
+
+          if (
+            hit.beat === undefined ||
+            hit.beat === null ||
+            hit.beat === "" ||
+            !Number.isFinite(Number(hit.beat))
+          ) {
+            return res.status(400).json({
+              error: "Every skeleton beat must be a finite number.",
+            });
+          }
+
+          const beat = Number(hit.beat);
+
+          if (beat < 0 || beat >= length) {
+            return res.status(400).json({
+              error:
+                "Every skeleton beat must be at least 0 and less than the skeleton length.",
+            });
+          }
+
+          if (!allowedSkeletonHits.has(hit.hit)) {
+            return res.status(400).json({
+              error: "Skeleton contains an unsupported hit symbol.",
+            });
+          }
+
+          const beatKey = beat.toFixed(4);
+
+          if (seenBeats.has(beatKey)) {
+            return res.status(400).json({
+              error: "A skeleton may contain only one hit at each beat.",
+            });
+          }
+
+          seenBeats.add(beatKey);
+
+          normalizedHits.push({
+            beat,
+            hit: hit.hit,
+          });
+        }
+
+        normalizedHits.sort((a, b) => a.beat - b.beat);
+
+        normalizedSkeletons.set(index, {
+          length,
+          hits: normalizedHits,
+        });
+
+        continue;
+      }
+
       if (value === undefined || value === null || value === "") {
         return res.status(400).json({
           error: `Value is required for ${field}.`,
@@ -355,20 +460,13 @@ app.post("/web/analytics/", adminRoleRequired, async (req, res) => {
     }
 
     /*
-     * Build the PostgreSQL WHERE clause.
-     *
-     * settings->>'field' extracts the JSON value as text.
-     *
-     * Numeric fields are cast to double precision.
+     * Numeric settings.
      */
     const numericFields = new Set([
       "bpm",
       "num_cycles",
-      "maxsubd",
-      "num_hits",
       "cycle_length",
       "shift_proba",
-      "generation_time",
       "amplitudeVariation",
       "allowed_tempo_deviation",
     ]);
@@ -377,29 +475,33 @@ app.post("/web/analytics/", adminRoleRequired, async (req, res) => {
 
     const whereParts = conditions.map((condition, index) => {
       const { field, operator, value } = condition;
-
       const parameterName = `value${index}`;
+
+      if (field === "skeletons") {
+        const normalizedSkeleton = normalizedSkeletons.get(index);
+
+        replacements[parameterName] = JSON.stringify([normalizedSkeleton]);
+
+        const containmentExpression = `
+      COALESCE(settings->'skeletons', '[]'::jsonb)
+      @> CAST(:${parameterName} AS jsonb)
+    `;
+
+        if (operator === "=") {
+          return `(${containmentExpression})`;
+        }
+
+        return `NOT (${containmentExpression})`;
+      }
 
       replacements[parameterName] = value;
 
-      /*
-       * Skeleton is currently treated as a string.
-       *
-       * Later we can make skeleton querying more sophisticated.
-       */
-      if (field === "skeleton") {
-        return `(settings->>'skeleton') ${operator} :${parameterName}`;
-      }
-
-      /*
-       * Numeric settings.
-       */
       if (numericFields.has(field)) {
         return `
-          NULLIF(settings->>'${field}', '')::double precision
-          ${operator}
-          CAST(:${parameterName} AS double precision)
-        `;
+      NULLIF(settings->>'${field}', '')::double precision
+      ${operator}
+      CAST(:${parameterName} AS double precision)
+    `;
       }
 
       return `(settings->>'${field}') ${operator} :${parameterName}`;
@@ -439,9 +541,7 @@ app.post("/web/analytics/", adminRoleRequired, async (req, res) => {
         (
           COALESCE(
             (
-              (settings->>'num_cycles')::double precision
-              *
-              (settings->>'cycle_length')::double precision
+              (settings->>'num_beats')::double precision
               *
               60.0
               /

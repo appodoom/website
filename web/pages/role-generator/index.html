@@ -28,10 +28,6 @@
       </div>
     </header>
 
-    <button id="go_back" class="btn" type="button">
-      Go back to the beginning
-    </button>
-
     <main class="generator-page">
       <div class="container generator-shell">
         <div class="generator-header">
@@ -45,8 +41,8 @@
 
           <div class="generator-steps" id="generatorSteps">
             <div class="step-pill" data-step="0">1. Settings</div>
-            <div class="step-pill" data-step="2">2. Skeletons</div>
-            <div class="step-pill" data-step="3">3. Result</div>
+            <div class="step-pill" data-step="1">2. Skeletons</div>
+            <div class="step-pill" data-step="2">3. Result</div>
           </div>
         </div>
 
@@ -156,8 +152,8 @@
       </section>
     </template>
 
-    <!-- PAGE 2 -->
-    <template id="page-2">
+    <!-- PAGE 1 -->
+    <template id="page-1">
       <section class="generator-view">
         <div class="view-header">
           <h2 class="view-title">Skeleton Markov Chain</h2>
@@ -368,7 +364,11 @@
               </button>
             </div>
 
-            <div id="matrix-validation" class="matrix-validation" role="alert"></div>
+            <div
+              id="matrix-validation"
+              class="matrix-validation"
+              role="alert"
+            ></div>
             <div class="matrix-modal-panel matrix-panel">
               <div class="matrix_container">
                 <div id="matrix-editor"></div>
@@ -385,8 +385,8 @@
       </section>
     </template>
 
-    <!-- PAGE 3 -->
-    <template id="page-3">
+    <!-- PAGE 2 -->
+    <template id="page-2">
       <section class="generator-view">
         <div class="view-header">
           <h2 class="view-title">Result</h2>

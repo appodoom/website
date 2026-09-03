@@ -236,7 +236,7 @@ async def generate(request: Request):
             amplitude_variation
         )
         
-        logger.info(f"Generation {audio_id} completed in {result.generation_time:.2f}s")
+        logger.info(f"Generation {audio_id} completed.")
         
         # Save metadata
         metadata = {
@@ -250,8 +250,7 @@ async def generate(request: Request):
             "skeleton_matrix": skeleton_matrix,
             "matrices": matrices,
             "amplitudeVariation": amplitude_variation,
-            "generation_time": result.generation_time,
-            "num_hits": result.num_hits
+            "num_beats": result.generated_num_beats
         }
         
         # Save files
